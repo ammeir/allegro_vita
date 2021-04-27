@@ -5,6 +5,8 @@ Work in process implementation of Allegro 4.4.3 for PlayStation Vita.
 -Install VitaSDK toolchain  
 -If you are on Windows, install MSYS2 command shell  
 -Clone allegro_vita repo into a folder somewhere  
--To compile run:  
+-Compile and istall:  
  cd /build  
- ./psv-config.sh  
+ ./psv-config.sh
+ make
+ make install  
