@@ -351,8 +351,6 @@ static char *ff_get_filename(AL_CONST char *path)
    return p;
 }
 
-
-
 /* ff_put_backslash:
  *  If the last character of the filename is not a /, this routine will
  *  concatenate a / on to it.
@@ -474,8 +472,6 @@ static int ff_match(AL_CONST char *s1, AL_CONST char *s2)
 
    return 0;
 }
-
-
 
 /* ff_get_attrib:
  *  Builds up the attribute list of the file pointed to by name and s.

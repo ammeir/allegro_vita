@@ -347,8 +347,6 @@ set(ALLEGRO_SRC_PSV_FILES
         src/psv/psound.c
         src/psv/psystem.c
         src/psv/ptimer.c
-        #src/psv/pvram.c
-        #src/psv/pvtable8.c
         )
 
 set(ALLEGRO_INCLUDE_ALLEGRO_FILES
@@ -416,6 +414,7 @@ set(ALLEGRO_INCLUDE_ALLEGRO_PLATFORM_FILES
         include/allegro/platform/aintmac.h
         include/allegro/platform/aintosx.h
         include/allegro/platform/aintpsp.h
+		include/allegro/platform/aintpsv.h
         include/allegro/platform/aintqnx.h
         include/allegro/platform/aintunix.h
         include/allegro/platform/aintwin.h
@@ -437,6 +436,8 @@ set(ALLEGRO_INCLUDE_ALLEGRO_PLATFORM_FILES
         # include/allegro/platform/alplatf.h.cmake
         include/allegro/platform/alpsp.h
         include/allegro/platform/alpspcfg.h
+		include/allegro/platform/alpsv.h
+        include/allegro/platform/alpsvcfg.h
         include/allegro/platform/alqnx.h
         include/allegro/platform/alqnxcfg.h
         include/allegro/platform/alucfg.h

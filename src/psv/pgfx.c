@@ -87,9 +87,6 @@ static void				psv_update_mouse_pointer(int x, int y, int retrace);
 static void				setEvent(EVENT* event);
 static void				waitForEvent(EVENT* event);
 
-//extern BITMAP*			psv_create_bitmap(int color_depth, int width, int height);
-//extern int				psv_destroy_bitmap(BITMAP *bitmap);
-
 
 GFX_DRIVER gfx_psv =
 {
@@ -565,7 +562,7 @@ static void psv_destroy_video_bitmap(BITMAP *bitmap)
 	_AL_FREE(bitmap);
 }
 
-/* psp_show_video_bitmap:
+/* psv_show_video_bitmap:
  *  Page flipping function: swaps to display the specified video memory 
  *  bitmap object (this must be the same size as the physical screen).
  */

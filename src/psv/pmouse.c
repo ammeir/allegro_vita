@@ -44,7 +44,7 @@ MOUSE_DRIVER mouse_psv =
    MOUSE_PSV,
    empty_string,
    empty_string,
-   "PSVita mouse",
+   "PSVITA mouse driver",
    psv_mouse_init,
    psv_mouse_exit,
    NULL,       // AL_METHOD(void, poll, (void));
@@ -175,20 +175,8 @@ static void psv_mouse_set_range(int x1, int y1, int x2, int y2)
 	mouse_maxx = x2;
 	mouse_maxy = y2;
 
-	//_enter_critical();
-
 	_mouse_x = CLAMP(mouse_minx, _mouse_x, mouse_maxx);
 	_mouse_y = CLAMP(mouse_miny, _mouse_y, mouse_maxy);
-
-	//mouse_mx = COORD_TO_MICKEY_X(_mouse_x);
-	//mouse_my = COORD_TO_MICKEY_Y(_mouse_y);
-
-	//CLEAR_MICKEYS();
-
-	//_exit_critical();
-
-	/* scale up the acceleration multiplier to the range */
-	//mouse_accel_mult = mouse_accel_fact * MAX(x2-x1+1, y2-y1+1)/320; 
 }
 
 static void psv_mouse_get_mickeys(int *mickeyx, int *mickeyy)

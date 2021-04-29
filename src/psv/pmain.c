@@ -33,14 +33,7 @@ extern void*  _mangled_main_address;
 int main(int argc, char *argv[])
 {
 	PSV_DEBUG("Replacement main()");
-	PSV_DEBUG("argc = %d", argc);
 	
-	if (argc > 0){
-		PSV_DEBUG("Arguments:");
-		for (int i=0; i<argc; ++i)
-			PSV_DEBUG("arg%d = %s", i, argv[i]);
-	}
-
 	int (*real_main) (int, char*[]) = (int (*) (int, char*[])) _mangled_main_address;
 
 	__crt0_argc = argc;

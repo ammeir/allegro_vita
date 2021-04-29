@@ -2,7 +2,6 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-//#include <cstdio>
 
 #include <stdio.h>
 #include <stdlib.h>

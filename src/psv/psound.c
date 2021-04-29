@@ -60,7 +60,7 @@ DIGI_DRIVER digi_psv =
    DIGI_PSV,
    empty_string,
    empty_string,
-   "PSVita digital sound driver",
+   "PSVITA digital sound driver",
    0,
    0,
    MIXER_MAX_SFX,
@@ -119,8 +119,8 @@ static int audioChannelThread()
 		//_mix_some_samples((uintptr_t)gs_sound_bufdata, 0, IS_SIGNED);
       
 		// Send sound data to the audio hardware.
-		//sceAudioOutOutput(gs_audio_port, gs_sound_bufdata);
 		sceAudioOutOutput(gs_audio_port, bufptr);
+		//sceAudioOutOutput(gs_audio_port, gs_sound_bufdata);
       
 		gs_buffer_id ^= 1;
 	}

@@ -49,7 +49,7 @@ TIMER_DRIVER timer_psv =
    TIMER_PSV,
    empty_string,
    empty_string,
-   "PSVita timer",
+   "PSVITA timer",
    psv_timer_init,
    psv_timer_exit,
    NULL, NULL,       /* install_int, remove_int */
@@ -112,7 +112,7 @@ static int psv_timer_init(void)
 {
 	PSV_DEBUG("psv_timer_init()");
 
-   /* Get the PSP ticks per second */
+   /* Get the ticks per second */
    psv_tick_resolution = sceRtcGetTickResolution();
 
    PSV_DEBUG("psv_tick_resolution = %d", psv_tick_resolution);

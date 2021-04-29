@@ -33,7 +33,7 @@
 
 #define DEFAULT_SCREEN_WIDTH       960
 #define DEFAULT_SCREEN_HEIGHT      544
-#define DEFAULT_COLOR_DEPTH         16//8
+#define DEFAULT_COLOR_DEPTH        8
 
 // Globals
 int    __crt0_argc;
@@ -44,8 +44,8 @@ static int psv_sys_init(void);
 static void psv_sys_exit(void);
 static void psv_get_exe_name(char *output, int size);
 static void psv_message(AL_CONST char *msg);
-BITMAP * psv_create_bitmap(int color_depth, int width, int height);
-static void psv_created_sub_bitmap(BITMAP *bmp, BITMAP *parent);
+//BITMAP*		psv_create_bitmap(int color_depth, int width, int height);
+//static void psv_created_sub_bitmap(BITMAP *bmp, BITMAP *parent);
 static void psv_get_gfx_safe_mode(int *driver, struct GFX_MODE *mode);
 static void* psv_create_mutex();
 static void psv_destroy_mutex(void* handle);
@@ -74,7 +74,7 @@ SYSTEM_DRIVER system_psv =
    SYSTEM_PSV,
    empty_string,
    empty_string,
-   "PSVITA",
+   "PSVITA system driver",
    psv_sys_init,
    psv_sys_exit,
    NULL/*psv_get_exe_name*/,  /* AL_METHOD(void, get_executable_name, (char *output, int size)); */
@@ -88,7 +88,7 @@ SYSTEM_DRIVER system_psv =
    NULL,  /* AL_METHOD(struct BITMAP *, create_bitmap, (int color_depth, int width, int height)); */
    NULL,  /* AL_METHOD(void, created_bitmap, (struct BITMAP *bmp)); */
    NULL,  /* AL_METHOD(struct BITMAP *, create_sub_bitmap, (struct BITMAP *parent, int x, int y, int width, int height)); */
-   psv_created_sub_bitmap,  /* AL_METHOD(void, created_sub_bitmap, (struct BITMAP *bmp, struct BITMAP *parent)); */
+   NULL,  /* AL_METHOD(void, created_sub_bitmap, (struct BITMAP *bmp, struct BITMAP *parent)); */
    NULL,  /* AL_METHOD(int, destroy_bitmap, (struct BITMAP *bitmap)); */
    NULL,  /* AL_METHOD(void, read_hardware_palette, (void)); */
    NULL,  /* AL_METHOD(void, set_palette_range, (AL_CONST struct RGB *p, int from, int to, int retracesync)); */
@@ -115,6 +115,7 @@ SYSTEM_DRIVER system_psv =
 
 void psv_set_app_dir(const char* dir)
 {
+	// Application should call this function on initialization to set the working directory.
 	PSV_DEBUG("psv_set_app_dir()");
 	
 	if (!dir)
@@ -123,7 +124,6 @@ void psv_set_app_dir(const char* dir)
 	PSV_DEBUG("dir = %s", dir);
 
 	gs_psv_app_dir = _AL_MALLOC(1024);
-
 	strncpy(gs_psv_app_dir, dir, 1024);
 }
 
@@ -184,100 +184,6 @@ static void psv_message(AL_CONST char *msg)
    } while (!pad.buttons);
 }
 
-
-
-/* psv_create_bitmap:
- *  Creates a RAM bitmap with proper PSP pitch.
- */
-BITMAP* psv_create_bitmap(int color_depth, int width, int height)
-{
-	//PSV_DEBUG("psv_create_bitmap");
-
-   GFX_VTABLE *vtable;
-   BITMAP *bitmap;
-   int nr_pointers;
-   int i;
-   int pitch;
-
-   vtable = _get_vtable(color_depth);
-   if (!vtable)
-      return NULL;
-
-   /* We need at least two pointers when drawing, otherwise we get crashes with
-    * Electric Fence.  We think some of the assembly code assumes a second line
-    * pointer is always available.
-    */
-   nr_pointers = MAX(2, height);
-   bitmap = _AL_MALLOC(sizeof(BITMAP) + (sizeof(char *) * nr_pointers));
-   if (!bitmap)
-      return NULL;
-
-   /* The memory bitmap width must be multiple of 8 pixels
-    * in order to blit properly using sceGuCopyImage().
-    */
-    pitch = ALIGN_TO(width, 8);
-   //pitch = width;//ALIGN_TO(width, 8);
-
-   //bitmap->dat = memalign(64, pitch * height * BYTES_PER_PIXEL(color_depth));
-   bitmap->dat = _AL_MALLOC_ATOMIC(pitch * height * BYTES_PER_PIXEL(color_depth));
-   if (!bitmap->dat) {
-      _AL_FREE(bitmap);
-      return NULL;
-   }
-
-   bitmap->w = bitmap->cr = width;
-   bitmap->h = bitmap->cb = height;
-   bitmap->clip = TRUE;
-   bitmap->cl = bitmap->ct = 0;
-   bitmap->vtable = vtable;
-   bitmap->write_bank = bitmap->read_bank = _stub_bank_switch;
-   bitmap->id = 0;
-   bitmap->x_ofs = 0;
-   bitmap->y_ofs = 0;
-   bitmap->seg = _default_ds();
-
-   if (height > 0) {
-      bitmap->line[0] = bitmap->dat;
-      for (i=1; i<height; i++)
-         bitmap->line[i] = bitmap->line[i-1] + pitch * BYTES_PER_PIXEL(color_depth);
-   }
-
-   /* Setup info structure to store additional information. */
-   bitmap->extra = malloc(sizeof(struct BMP_EXTRA_INFO));
-   if (!bitmap->extra) {
-      _AL_FREE(bitmap);
-      return NULL;
-   }
-   BMP_EXTRA(bitmap)->pitch = pitch;
-
-   return bitmap;
-}
-
-
-
-/* psp_created_sub_bitmap:
- *  Set the needed sub bitmap info.
- */
-static void psv_created_sub_bitmap(BITMAP *bmp, BITMAP *parent)
-{
-	PSV_DEBUG("psv_created_sub_bitmap");
-   if (BMP_EXTRA(parent)) {
-      bmp->extra = malloc(sizeof(struct BMP_EXTRA_INFO));
-      if (bmp->extra)
-         BMP_EXTRA(bmp)->pitch = BMP_EXTRA(parent)->pitch;
-   }
-}
-
-/* psp_destroy_bitmap:
- *  Destroys the bitmap extra info structure.
- */
-int psv_destroy_bitmap(BITMAP *bitmap)
-{
-   _AL_FREE(bitmap->extra);
-
-   return 0;
-}
-
 /* psv_get_gfx_safe_mode:
  *  Defines the safe graphics mode for this system.
  */
@@ -286,9 +192,9 @@ static void psv_get_gfx_safe_mode(int *driver, struct GFX_MODE *mode)
 	PSV_DEBUG("psv_get_gfx_safe_mode()");
 
    *driver = GFX_PSV;
-   mode->width = 320;//DEFAULT_SCREEN_WIDTH;
-   mode->height = 200;//DEFAULT_SCREEN_HEIGHT;
-   mode->bpp = 8;//DEFAULT_COLOR_DEPTH;
+   mode->width = DEFAULT_SCREEN_WIDTH;
+   mode->height = DEFAULT_SCREEN_HEIGHT;
+   mode->bpp = DEFAULT_COLOR_DEPTH;
 }
 
 
