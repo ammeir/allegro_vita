@@ -2,8 +2,6 @@
 
 rm -f allegro-config Makefile cmake_install.cmake CMakeCache.txt
 cmake \
-      -DWANT_DOCS=OFF \
-      -DWANT_FRAMEWORKS=OFF \
       -DWANT_JPGALLEG=OFF \
       -DWANT_LOADPNG=OFF \
       -DWANT_LOGG=OFF \
