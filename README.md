@@ -8,5 +8,4 @@ Work in process implementation of Allegro 4.4.3 for PlayStation Vita.
 -Compile and install:  
  cd /build  
  ./psv-config.sh  
- make  
  make install  
