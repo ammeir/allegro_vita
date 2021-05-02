@@ -209,26 +209,25 @@ static BITMAP *psv_display_init(int w, int h, int v_w, int v_h, int color_depth)
 	switch(color_depth){
 	case 8:
 		// format: 8 bit indexed
-		// NOTE: Only this color depth has been tested so far on Worminator.
 		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_BASE_FORMAT_P8);
 		gs_viewBitDepth = 8;
 		gs_texture_format = SCE_GXM_TEXTURE_BASE_FORMAT_P8;
 		break;
 	case 15:
-		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U5U5U5U1_RGBA);
+		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U5U5U5U1_BGRA);
 		gs_viewBitDepth = 15;
-		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U5U5U5U1_RGBA;
+		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U5U5U5U1_BGRA;
 		break;
 	case 16:
 		// format: 16 bit 5-6-5
-		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB);
+		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U5U6U5_BGR);
 		gs_viewBitDepth = 16;
-		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U5U6U5_RGB;
+		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U5U6U5_BGR;
 		break;
 	case 32:
-		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_RGBA);
+		gs_view_tex = vita2d_create_empty_texture_format(v_w, v_h, (SceGxmTextureFormat)SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_BGRA);
 		gs_viewBitDepth = 32;
-		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_RGBA;
+		gs_texture_format = SCE_GXM_TEXTURE_FORMAT_U8U8U8U8_BGRA; 
 		break;
 	default:
          ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Unsupported color depth"));
