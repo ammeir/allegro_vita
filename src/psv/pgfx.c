@@ -108,7 +108,7 @@ GFX_DRIVER gfx_psv =
    NULL,                         /* AL_METHOD(int, request_video_bitmap, (BITMAP *bitmap)); */
    NULL,                         /* AL_METHOD(BITMAP *, create_system_bitmap, (int width, int height)); */
    NULL,                         /* AL_METHOD(void, destroy_system_bitmap, (BITMAP *bitmap)); */
-   psv_set_mouse_sprite/*NULL*/, /* AL_METHOD(int, set_mouse_sprite, (BITMAP *sprite, int xfocus, int yfocus)); */
+   psv_set_mouse_sprite, /* AL_METHOD(int, set_mouse_sprite, (BITMAP *sprite, int xfocus, int yfocus)); */
    psv_show_mouse/*NULL*/,       /* AL_METHOD(int, show_mouse, (BITMAP *bmp, int x, int y)); */
    psv_hide_mouse/*NULL*/,       /* AL_METHOD(void, hide_mouse, (void)); */
    psv_move_mouse/*NULL*/,       /* AL_METHOD(void, move_mouse, (int x, int y)); */
@@ -136,12 +136,14 @@ void psv_draw_to_screen()
 	if (!g_displayed_video_bitmap)
 		return;
 
-	sceKernelLockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1, 0);
+	
 
 	/* update mouse pointer if needed */
     if (gs_psv_mouse_on) {
         psv_update_mouse_pointer(gs_psv_mouse_xpos, gs_psv_mouse_ypos, TRUE);
     }
+
+	sceKernelLockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1, 0);
 
 	vita2d_start_drawing();
 	vita2d_clear_screen();
@@ -284,19 +286,14 @@ static BITMAP *psv_display_init(int w, int h, int v_w, int v_h, int color_depth)
    gs_retrace_event.cond = sceKernelCreateCond("psv_retrace_event_cond", 0, gs_retrace_event.mutex, NULL);
    gs_retrace_event.signalled = 0;
 
-   // Are these necessary?
-   //LOCK_VARIABLE(g_displayed_video_bitmap);
-   //LOCK_VARIABLE(gs_view_tex);
-   //LOCK_FUNCTION(psv_draw_to_screen); 
-
    /* Create render timer */
-   install_int(psv_draw_to_screen, 17); // About 60 FPS
+   psv_install_render_timer();
 
    return psv_screen;
 }
 
 /* psv_set_palette:
- *  Sets the hardware palette for the 8 bpp video mode.
+ *  Sets the palette for the 8 bpp video mode.
  */
 static void psv_set_palette(AL_CONST RGB *p, int from, int to, int retracesync)
 {
@@ -346,6 +343,9 @@ static void psv_gfx_unlock(struct BITMAP *bmp)
 static int psv_set_mouse_sprite(struct BITMAP *sprite, int xfocus, int yfocus)
 {
 	//PSV_DEBUG("psv_set_mouse_sprite()");
+   if (!sprite)
+      return FALSE;
+
    if (gs_psv_mouse_sprite) {
       destroy_bitmap(gs_psv_mouse_sprite);
       gs_psv_mouse_sprite = NULL;
@@ -366,7 +366,7 @@ static int psv_set_mouse_sprite(struct BITMAP *sprite, int xfocus, int yfocus)
    gs_psv_mouse_frontbuffer = create_bitmap(sprite->w, sprite->h);
    gs_psv_mouse_backbuffer = create_bitmap(sprite->w, sprite->h);
 
-   return 0;
+   return TRUE;
 }
 
 static int psv_show_mouse(struct BITMAP *bmp, int x, int y)
@@ -374,7 +374,7 @@ static int psv_show_mouse(struct BITMAP *bmp, int x, int y)
 	//PSV_DEBUG("psv_show_mouse()");
    /* handle only the screen */
    if (bmp != g_displayed_video_bitmap)
-      return -1;
+      return -1;//FALSE;
 
    gs_psv_mouse_on = TRUE;
 
@@ -383,7 +383,7 @@ static int psv_show_mouse(struct BITMAP *bmp, int x, int y)
 
    psv_update_mouse_pointer(x, y, FALSE);
 
-   return 0;
+   return 0;//TRUE;
 }
 
 static void psv_hide_mouse()
@@ -391,6 +391,8 @@ static void psv_hide_mouse()
 	//PSV_DEBUG("psv_hide_mouse()");
 	if (!gs_psv_mouse_on)
 		return; 
+	
+	sceKernelLockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1, 0);
 
 	blit(gs_psv_mouse_backbuffer, 
 		 g_displayed_video_bitmap, 
@@ -398,10 +400,12 @@ static void psv_hide_mouse()
 		 gs_psv_mouse_backbuffer->w, 
 		 gs_psv_mouse_backbuffer->h);
 
+	sceKernelUnlockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1);
+
 	gs_psv_mouse_on = FALSE;
 }
 
-/* gfx_gdi_move_mouse:
+/* psv_move_mouse:
  */
 static void psv_move_mouse(int x, int y)
 {
@@ -437,11 +441,16 @@ static void psv_update_mouse_pointer(int x, int y, int retrace)
    if (retrace) {
       /* restore the screen contents located at the old position */
       //blit_to_hdc(mouse_backbuffer, hdc, 0, 0, mouse_xpos, mouse_ypos, mouse_backbuffer->w, mouse_backbuffer->h);
-	  blit(gs_psv_mouse_backbuffer, 
+	  
+	   sceKernelLockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1, 0);
+	   
+	   blit(gs_psv_mouse_backbuffer, 
 		  g_displayed_video_bitmap, 
 		  0, 0, gs_psv_mouse_xpos, gs_psv_mouse_ypos, 
 		  gs_psv_mouse_backbuffer->w, 
 		  gs_psv_mouse_backbuffer->h);
+
+	   sceKernelUnlockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1);
    }
 
    /* save the screen contents located at the new position into the backbuffer */
@@ -453,11 +462,15 @@ static void psv_update_mouse_pointer(int x, int y, int retrace)
 
    /* blit the mouse pointer onto the screen */
    //blit_to_hdc(mouse_frontbuffer, hdc, 0, 0, x, y, mouse_frontbuffer->w, mouse_frontbuffer->h);
+   sceKernelLockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1, 0);
+
    blit(gs_psv_mouse_frontbuffer, 
 		g_displayed_video_bitmap, 
 		0, 0, x, y, 
 		gs_psv_mouse_frontbuffer->w, 
 		gs_psv_mouse_frontbuffer->h);
+
+   sceKernelUnlockLwMutex((struct SceKernelLwMutexWork*)gs_gfx_lock, 1);
 
    /* save the new position */
    gs_psv_mouse_xpos = x;

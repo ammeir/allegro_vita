@@ -21,6 +21,7 @@
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
 #include "math.h"
+#include "psvita.h"
 #include <psp2/ctrl.h>
 
 #ifndef ALLEGRO_PSV
@@ -37,6 +38,10 @@ static void psv_mouse_position(int, int);
 static void psv_mouse_set_range(int, int, int, int);
 static void psv_mouse_get_mickeys(int *, int *);
 static void psv_mouse_timer_poll(void);
+
+extern int _mouse_x;
+extern int _mouse_y;
+extern int _mouse_b;
 
 
 MOUSE_DRIVER mouse_psv =
@@ -58,22 +63,20 @@ MOUSE_DRIVER mouse_psv =
    NULL        // AL_METHOD(int,  select_system_cursor, (AL_CONST int cursor));
 };
 
-static int mouse_minx = 0;
-static int mouse_miny = 0;
-static int mouse_maxx = 959;  /* 0 to 959 = 960 */
-static int mouse_maxy = 543;  /* 0 to 543 = 544 */   /* 960x544 is the resolution of the psv display */
-
-static SceCtrlData pad;
-static int aStickX = 0;
-static int aStickY = 0;
-static float aStickR;
-static float aStickA;
-static int x,y;
-static float Precision = 360.0f;
-
+static int   gs_mouse_minx = 0;
+static int   gs_mouse_miny = 0;
+static int   gs_mouse_maxx = 959;  /* 0 to 959 = 960 */
+static int   gs_mouse_maxy = 543;  /* 0 to 543 = 544 */   
+//static SceCtrlData pad;
+static int   gs_stick_x = 0;
+static int   gs_stick_y = 0;
+static float gs_stick_radius;
+static float gs_stick_angle;
+static float gs_precision = 360.0f;
+static int   gs_mouse_speed = 5;
 
 
-static int getSqrRadius(int X, int Y) 
+static inline int getSqrRadius(int X, int Y) 
 {
    return sqrt((X * X) + (Y * Y));
 }
@@ -86,99 +89,114 @@ static int psv_mouse_init(void)
    return 3; //Num of buttons.
 }
 
-
-
 static void psv_mouse_timer_poll(void)
 {
+   static int x = 0;
+   static int y = 0;
+   static SceCtrlData pad;
+
    sceCtrlPeekBufferPositive(0, &pad, 1);
 
-   if (pad.buttons != 0)
-   {
+   //if (pad.buttons != 0)
+   //{
      //sceCtrlReadBufferPositive(0, &pad, 1);
-	 sceCtrlPeekBufferPositive(0, &pad, 1);
+	 //sceCtrlPeekBufferPositive(0, &pad, 1);
      _mouse_b = 0;
      if (pad.buttons & SCE_CTRL_LTRIGGER) _mouse_b = 1;
      if (pad.buttons & SCE_CTRL_RTRIGGER) _mouse_b = 2;
      if ( (pad.buttons & SCE_CTRL_LTRIGGER) && (pad.buttons & SCE_CTRL_RTRIGGER)) _mouse_b = 4;
-   }
-   aStickX = pad.ly - 128;
-   aStickY = pad.lx - 128;
+   //}
+   gs_stick_x = pad.ly - 128;
+   gs_stick_y = pad.lx - 128;
 
-   aStickR = getSqrRadius(aStickX, aStickY);
-   if (aStickR > 100) {
-      if (getSqrRadius(aStickX, aStickY) > 30) {
-         aStickA = ((atan2f(aStickX, -aStickY) + M_PI) / (M_PI * 2)) * Precision;
+   gs_stick_radius = getSqrRadius(gs_stick_x, gs_stick_y);
+   if (gs_stick_radius > 100) {
+      if (gs_stick_radius > 30) {
+         gs_stick_angle = ((atan2f(gs_stick_x, -gs_stick_y) + M_PI) / (M_PI * 2)) * gs_precision;
       } else {
-         aStickA = -1;     
+         gs_stick_angle = -1;     
       }
 
       //1° a 89°
-      if (aStickA >= 1 && aStickA <= (89 * (Precision / 360.0f))) {
-         x += (10 * (1 - (aStickA / (Precision / 360.0f) / 90)));
-         y -= (10 * (0 + (aStickA / (Precision / 360.0f) / 90)));
+      if (gs_stick_angle >= 1 && gs_stick_angle <= (89 * (gs_precision / 360.0f))) {
+         x += (gs_mouse_speed * (1 - (gs_stick_angle / (gs_precision / 360.0f) / 90)));
+         y -= (gs_mouse_speed * (0 + (gs_stick_angle / (gs_precision / 360.0f) / 90)));
       }
-      else if (aStickA >= (91 * (Precision / 360.0f)) && aStickA <= (179 * (Precision / 360.0f))) {
-         x -= (10 * (0 + (((aStickA / (Precision / 360.0f)) - 89) / 90)));
-         y -= (10 * (1 - (((aStickA / (Precision / 360.0f)) - 89) / 90)));
+      else if (gs_stick_angle >= (91 * (gs_precision / 360.0f)) && gs_stick_angle <= (179 * (gs_precision / 360.0f))) {
+         x -= (gs_mouse_speed * (0 + (((gs_stick_angle / (gs_precision / 360.0f)) - 89) / 90)));
+         y -= (gs_mouse_speed * (1 - (((gs_stick_angle / (gs_precision / 360.0f)) - 89) / 90)));
       }
-      else if (aStickA >= (181 * (Precision / 360.0f)) && aStickA <= (269 * (Precision / 360.0f))) {
-         x -= (10 * (1 - (((aStickA / (Precision / 360.0f)) - 179) / 90)));
-         y += (10 * (0 + (((aStickA / (Precision / 360.0f)) - 179) / 90)));
+      else if (gs_stick_angle >= (181 * (gs_precision / 360.0f)) && gs_stick_angle <= (269 * (gs_precision / 360.0f))) {
+         x -= (gs_mouse_speed * (1 - (((gs_stick_angle / (gs_precision / 360.0f)) - 179) / 90)));
+         y += (gs_mouse_speed * (0 + (((gs_stick_angle / (gs_precision / 360.0f)) - 179) / 90)));
       }
-      else if (aStickA >= (271 * (Precision / 360.0f)) && aStickA <= (359 * (Precision / 360.0f))) {
-         x += (10 * (0 + (((aStickA / (Precision / 360.0f)) - 269) / 90)));
-         y += (10 * (1 - (((aStickA / (Precision / 360.0f)) - 269) / 90)));
+      else if (gs_stick_angle >= (271 * (gs_precision / 360.0f)) && gs_stick_angle <= (359 * (gs_precision / 360.0f))) {
+         x += (gs_mouse_speed * (0 + (((gs_stick_angle / (gs_precision / 360.0f)) - 269) / 90)));
+         y += (gs_mouse_speed * (1 - (((gs_stick_angle / (gs_precision / 360.0f)) - 269) / 90)));
       }
-      else if (aStickA == 0) {
-         x += 10;
+      else if (gs_stick_angle == 0) {
+         x += gs_mouse_speed;
       }
-      else if (aStickA == (90 * (Precision / 360.0f))) {
-         y -= 10;
+      else if (gs_stick_angle == (90 * (gs_precision / 360.0f))) {
+         y -= gs_mouse_speed;
       }
-      else if (aStickA == (180 * (Precision / 360.0f))) {
-         x -= 10;
+      else if (gs_stick_angle == (180 * (gs_precision / 360.0f))) {
+         x -= gs_mouse_speed;
       }
-      else if (aStickR == (270 * (Precision / 360.0f))) {
-         y += 10;
+      else if (gs_stick_radius == (270 * (gs_precision / 360.0f))) {
+         y += gs_mouse_speed;
       }
    }
-   if (x < 0)
-      x = 0;
+   if (x < gs_mouse_minx)
+      x = gs_mouse_minx;
 
-   if (x > 959)
-      x = 959;
+   if (x > gs_mouse_maxx)
+      x = gs_mouse_maxx;
 
-   if (y < 0)
-      y = 0;
+   if (y < gs_mouse_miny)
+      y = gs_mouse_miny;
 
-   if (y > 543)
-      y = 543;
+   if (y > gs_mouse_maxy)
+      y = gs_mouse_maxy;
 
    _mouse_x = x;
    _mouse_y = y;
 }
 
+/* psv_mouse_position:
+ *  Mouse coordinate range checking.
+ */ 
 static void psv_mouse_position(int x, int y)
 {
    _mouse_x = x;
-   if (_mouse_x <  mouse_minx) _mouse_x = 0;
-   if (_mouse_x > mouse_maxx)  _mouse_x = mouse_maxx;
+   if (_mouse_x <  gs_mouse_minx) _mouse_x = 0;
+   if (_mouse_x > gs_mouse_maxx)  _mouse_x = gs_mouse_maxx;
    _mouse_y = y;
-   if (_mouse_y < mouse_miny) _mouse_y = 0;
-   if (_mouse_y > mouse_maxy) _mouse_y = mouse_maxy;
+   if (_mouse_y < gs_mouse_miny) _mouse_y = 0;
+   if (_mouse_y > gs_mouse_maxy) _mouse_y = gs_mouse_maxy;
 }
 
+/* psv_mouse_set_range:
+ *  Set mouse movement range.
+ */ 
 static void psv_mouse_set_range(int x1, int y1, int x2, int y2)
 {
-	mouse_minx = x1;
-	mouse_miny = y1;
-	mouse_maxx = x2;
-	mouse_maxy = y2;
+	PSV_DEBUG("psv_mouse_set_range()");
+	PSV_DEBUG("x2 = %d, y2 = %d", x2, y2);
 
-	_mouse_x = CLAMP(mouse_minx, _mouse_x, mouse_maxx);
-	_mouse_y = CLAMP(mouse_miny, _mouse_y, mouse_maxy);
+	gs_mouse_minx = x1;
+	gs_mouse_miny = y1;
+	gs_mouse_maxx = x2;
+	gs_mouse_maxy = y2;
+
+	_mouse_x = CLAMP(gs_mouse_minx, _mouse_x, gs_mouse_maxx);
+	_mouse_y = CLAMP(gs_mouse_miny, _mouse_y, gs_mouse_maxy);
 }
 
+/* psv_mouse_get_mickeys:
+ *  Measures the mickey count (how far the mouse has moved since the last
+ *  call to this function).
+ */ 
 static void psv_mouse_get_mickeys(int *mickeyx, int *mickeyy)
 {
    *mickeyx = 0;
