@@ -9,3 +9,6 @@ Work in process implementation of Allegro 4.4.3 for PlayStation Vita.
  cd /build  
  ./psv-config.sh  
  make install  
+
+### Projects using Allegro Vita 
+[Worminator](https://github.com/ammeir/worminator)  
