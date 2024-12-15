@@ -23,9 +23,12 @@
 #include <string.h>
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
+#include "allegro/platform/aintpsv.h"
+#include "sfifo.h"
 
+extern sfifo_t	g_sfifo;
+extern void psv_draw_to_screen();
 
 /* get_replacement_mask_color:
  *  Helper function to get a replacement color for the bitmap's mask color.
@@ -58,8 +61,6 @@ static int get_replacement_mask_color(BITMAP *bmp)
  */
 static void blit_from_256(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x, int d_y, int w, int h)
 {
-   //PSV_DEBUG("blit_from_256()");
-
    #ifdef ALLEGRO_COLOR8
 
    int *dest_palette_color;
@@ -82,9 +83,8 @@ static void blit_from_256(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x, 
             dest_palette_color[c] = rc;
       }
    }
-   else{
-		dest_palette_color = _palette_expansion_table(bitmap_color_depth(dest));
-   }
+   else
+      dest_palette_color = _palette_expansion_table(bitmap_color_depth(dest));
 
    /* worker macro */
    #define EXPAND_BLIT(bits, dsize)                                          \
@@ -605,8 +605,6 @@ void _blit_between_formats(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x,
  */
 static void blit_to_self(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x, int d_y, int w, int h)
 {
-	//PSV_DEBUG("blit_to_self()");
-
    unsigned long sx, sy, dx, dy;
    BITMAP *tmp;
 
@@ -707,70 +705,46 @@ static void blit_to_self(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x, i
  */
 void blit(BITMAP *src, BITMAP *dest, int s_x, int s_y, int d_x, int d_y, int w, int h)
 {
+   //PSV_DEBUG("blit()");
    ASSERT(src);
    ASSERT(dest);
    BLIT_CLIP();
 
-   //PSV_DEBUG("blit()");
-
    if (src->vtable->color_depth != dest->vtable->color_depth) {
-	  //PSV_DEBUG("blit(): TRACE1");
-	  //PSV_DEBUG("source color depth=%d, dest color depth=%d", src->vtable->color_depth, dest->vtable->color_depth);
       /* need to do a color conversion */
       dest->vtable->blit_between_formats(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  //gfx_driver->show_video_bitmap(dest);
    }
    else if (is_same_bitmap(src, dest)) {
-	  //PSV_DEBUG("blit(): TRACE1.1");
       /* special handling for overlapping regions */
       blit_to_self(src, dest, s_x, s_y, d_x, d_y, w, h);
    }
    else if (is_video_bitmap(dest)) {
       /* drawing onto video bitmaps */
-      if (is_video_bitmap(src)){
-		  //PSV_DEBUG("blit(): TRACE2");
+      if (is_video_bitmap(src))
          dest->vtable->blit_to_self(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
-      else if (is_system_bitmap(src)){
-		  //PSV_DEBUG("blit(): TRACE3");
+      else if (is_system_bitmap(src))
          dest->vtable->blit_from_system(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
-      else{
-		 //PSV_DEBUG("blit(): TRACE4");
+      else
          dest->vtable->blit_from_memory(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
    }
    else if (is_system_bitmap(dest)) {
       /* drawing onto system bitmaps */
-      if (is_video_bitmap(src)){
-		  //PSV_DEBUG("blit(): TRACE5");
+      if (is_video_bitmap(src))
          src->vtable->blit_to_system(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
-      else if (is_system_bitmap(src)){
-		  //PSV_DEBUG("blit(): TRACE6");
+      else if (is_system_bitmap(src))
          dest->vtable->blit_to_self(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
-      else{
-		  //PSV_DEBUG("blit(): TRACE7");
+      else
          dest->vtable->blit_from_memory(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
    }
    else {
       /* drawing onto memory bitmaps */
-      if ((is_video_bitmap(src)) || (is_system_bitmap(src))){
-		 //PSV_DEBUG("blit(): TRACE8");
+      if ((is_video_bitmap(src)) || (is_system_bitmap(src)))
          src->vtable->blit_to_memory(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
-      else{
-		 //PSV_DEBUG("blit(): TRACE9");
+      else
          dest->vtable->blit_to_self(src, dest, s_x, s_y, d_x, d_y, w, h);
-	  }
    }
 }
-
 END_OF_FUNCTION(blit);
-
-
 
 /* masked_blit:
  *  Version of blit() that skips zero pixels. The source must be a memory

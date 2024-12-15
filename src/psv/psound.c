@@ -22,11 +22,9 @@
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/audioout.h>
 
-
 #ifndef ALLEGRO_PSV
 #error something is wrong with the makefile
 #endif
-
 
 #define IS_SIGNED TRUE
 #define SAMPLES_PER_BUFFER 1024
@@ -37,22 +35,28 @@ typedef struct{
     int signalled;
 } EVENT;
 
+// Globals
+static SceUID	gs_audio_thread_UID = -1;
 static EVENT	gs_thread_end_event;
-static SceUID	gs_audio_thread_UID;
-static int		gs_psv_audio_on = FALSE;
-static int		gs_audio_port;     
+static int		gs_audio_port = -1; 
 static int		gs_buffer_id = 0;
-// Two buffers. Double the buffer size if using stereo sound.
+static int		gs_psv_audio_on = FALSE;
+int				g_psv_audio_mute = FALSE;
+// Two buffers. Double the size for stereo sound.
 static short	gs_sound_buffer[2][2 * SAMPLES_PER_BUFFER];
-//static unsigned char* gs_sound_bufdata;
+static short	gs_mute_buffer[2 * SAMPLES_PER_BUFFER];
 
-static int		digi_psv_detect(int);
-static int		digi_psv_init(int, int);
-static void		digi_psv_exit(int);
-static int		digi_psv_buffer_size();
-static int		audioChannelThread();
+// Driver function implementations
+static int		psv_digi_detect(int);
+static int		psv_digi_init(int, int);
+static void		psv_digi_exit(int);
+static int		psv_digi_buffer_size();
+
+static int		audioChannelThread(SceSize args, void *argp);
 static void		setEvent(EVENT* event);
 static void		waitForEvent(EVENT* event);
+// API extension for convinience. Use 'extern' keyword when declaring the functions in client.
+void			al_psv_reset_sound();
 
 
 DIGI_DRIVER digi_psv =
@@ -65,14 +69,14 @@ DIGI_DRIVER digi_psv =
    0,
    MIXER_MAX_SFX,
    MIXER_DEF_SFX,
-   digi_psv_detect,
-   digi_psv_init,
-   digi_psv_exit,
+   psv_digi_detect,
+   psv_digi_init,
+   psv_digi_exit,
    NULL,
    NULL,
    NULL,
    NULL,
-   digi_psv_buffer_size,
+   psv_digi_buffer_size,
    _mixer_init_voice,
    _mixer_release_voice,
    _mixer_start_voice,
@@ -108,21 +112,29 @@ DIGI_DRIVER digi_psv =
 /* audioChannelThread:
  *  This thread manages the audio playing.
  */
-static int audioChannelThread()
+static int audioChannelThread(SceSize args, void *argp)
 {
 	PSV_DEBUG("audioChannelThread()");
+
+    gs_psv_audio_on = TRUE;
+
 	while (gs_psv_audio_on) {
-		void *bufptr = &gs_sound_buffer[gs_buffer_id];
+
+		if (!g_psv_audio_mute){
+			void *bufptr = &gs_sound_buffer[gs_buffer_id];
       
-		// Ask allegro mixer to fill the buffer.
-		_mix_some_samples((uintptr_t)bufptr, 0, IS_SIGNED);
-		//_mix_some_samples((uintptr_t)gs_sound_bufdata, 0, IS_SIGNED);
-      
-		// Send sound data to the audio hardware.
-		sceAudioOutOutput(gs_audio_port, bufptr);
-		//sceAudioOutOutput(gs_audio_port, gs_sound_bufdata);
-      
-		gs_buffer_id ^= 1;
+			// Ask allegro mixer to fill the buffer.
+			_mix_some_samples((uintptr_t)bufptr, 0, IS_SIGNED);
+			
+			// Send sound data to the audio hardware.
+			sceAudioOutOutput(gs_audio_port, bufptr); // Blocking function
+	
+			gs_buffer_id ^= 1;
+		}
+		else{
+			// Output silence
+			sceAudioOutOutput(gs_audio_port, gs_mute_buffer);
+		}
 	}
 
 	setEvent(&gs_thread_end_event);
@@ -132,12 +144,12 @@ static int audioChannelThread()
 	return 0;
 }
 
-/* digi_psv_detect:
+/* psv_digi_detect:
  *  Returns TRUE if the audio hardware is present.
  */
-static int digi_psv_detect(int input)
+static int psv_digi_detect(int input)
 {
-	//PSV_DEBUG("digi_psv_detect()");
+	//PSV_DEBUG("psv_digi_detect()");
 
    if (input) {
       ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Input is not supported"));
@@ -147,33 +159,39 @@ static int digi_psv_detect(int input)
    return TRUE;
 }
 
-/* digi_psv_init:
+/* psv_digi_init:
  *  Initializes the PSVITA digital sound driver.
  */
-static int digi_psv_init(int input, int voices)
+static int psv_digi_init(int input, int voices)
 {
-	PSV_DEBUG("digi_psv_init()");
+	PSV_DEBUG("psv_digi_init()");
+	PSV_DEBUG("input = %d", input);
+	PSV_DEBUG("voices = %d", voices);
+
 	char digi_psv_desc[512] = EMPTY_STRING;
 	char tmp1[256];
 
 	if (input) {
 		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Input is not supported"));
-		PSV_DEBUG("digi_psv_init(), error (1)");
+		//PSV_DEBUG("psv_digi_init(), error (1)");
 		return -1;
+	}
+
+	// First release audio port if left open.
+	if (gs_audio_port > 0){
+		sceAudioOutReleasePort(gs_audio_port);
 	}
 
 	// Open audio channel.
-	gs_audio_port = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_MAIN,
-									SAMPLES_PER_BUFFER, 48000,
+	gs_audio_port = sceAudioOutOpenPort(/*SCE_AUDIO_OUT_PORT_TYPE_BGM*/SCE_AUDIO_OUT_PORT_TYPE_MAIN,
+									SAMPLES_PER_BUFFER, /*44100*/48000,
 									SCE_AUDIO_OUT_MODE_STEREO);
    
-	if (gs_audio_port < 0) {
+	if (gs_audio_port <= 0) {
 		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Failed reserving hardware sound channel"));
-		PSV_DEBUG("digi_psv_init(), error (2)");
+		//PSV_DEBUG("psv_digi_init(), error (2)");
 		return -1;
 	}
-
-	gs_psv_audio_on = TRUE;
 
 	// Set channel volume.
 	int vols[2]={SCE_AUDIO_OUT_MAX_VOL, SCE_AUDIO_OUT_MAX_VOL};
@@ -181,36 +199,33 @@ static int digi_psv_init(int input, int voices)
 
 	// Create the audio playing thread.
 	gs_audio_thread_UID = sceKernelCreateThread("psv_audio_thread",
-		(void *)&audioChannelThread, 0x10000100, 0x10000, 0, 0, NULL);
+		&audioChannelThread, 0x10000100, 0x4000, 0, 0x10000, NULL);
 
 	if (gs_audio_thread_UID < 0) {
 		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot create audio thread"));
-		digi_psv_exit(FALSE);
-		PSV_DEBUG("digi_psv_init(), error (3)");
+		psv_digi_exit(FALSE);
+		//PSV_DEBUG("psv_digi_init(), error (3)");
 		return -1;
 	}
 
-	// Start the thread.
-	if (sceKernelStartThread(gs_audio_thread_UID, 0, NULL) != 0) {
-		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot start audio thread"));
-		digi_psv_exit(FALSE);
+	//sceKernelChangeThreadCpuAffinityMask(gs_audio_thread_UID, SCE_KERNEL_CPU_MASK_USER_1);
 
-		PSV_DEBUG("digi_psv_init(), error (4)");
-		return -1;
-	}
+	PSV_DEBUG("Created audio thread: 0x%x", gs_audio_thread_UID);
 
 	// Create the end of audio thread -event.
     gs_thread_end_event.mutex = sceKernelCreateMutex("psv_end_thread_event_mutex", 0, 0, NULL);
     gs_thread_end_event.cond = sceKernelCreateCond("psv_end_thread_event_cond", 0, gs_thread_end_event.mutex, NULL);
     gs_thread_end_event.signalled = 0;
 
-	// Size = buffer size * channel count * bytes per sample.
-	//gs_sound_bufdata = _AL_MALLOC_ATOMIC(SAMPLES_PER_BUFFER * 2 * 2); 
+	int arr2 = SAMPLES_PER_BUFFER * 2;
+	for(int i=0; i<arr2; i++) {
+        gs_mute_buffer[i] = 0;
+	}
 
 	/* Setup Allegro sound mixer */
 	_sound_bits = 16;
 	_sound_stereo = TRUE;
-	_sound_freq = 48000;
+	_sound_freq = /*44100*/48000;
 
 	digi_psv.voices = voices;
 
@@ -218,8 +233,8 @@ static int digi_psv_init(int input, int voices)
 			(_sound_bits == 16)? 1:0, &digi_psv.voices))
 	{
 		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Error initializing mixer"));
-		digi_psv_exit(FALSE);
-		PSV_DEBUG("digi_psv_init(), error (5)");
+		psv_digi_exit(FALSE);
+		//PSV_DEBUG("psv_digi_init(), error (4)");
 		return -1;
 	}
 
@@ -229,31 +244,47 @@ static int digi_psv_init(int input, int voices)
 
 	digi_psv.desc = digi_psv_desc;
 
+
+	// Start the thread.
+	if (sceKernelStartThread(gs_audio_thread_UID, 0, NULL) != 0) {
+		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot start audio thread"));
+		psv_digi_exit(FALSE);
+
+		//PSV_DEBUG("psv_digi_init(), error (5)");
+		return -1;
+	}
+
+	PSV_DEBUG("Started audio thread: 0x%x", gs_audio_thread_UID);
+
 	return 0;
 }
 
-/* digi_psv_exit:
+/* psv_digi_exit:
  *  Shuts down the sound driver.
  */
-static void digi_psv_exit(int input)
+static void psv_digi_exit(int input)
 {
-	PSV_DEBUG("digi_psv_exit()");
-
-	if (input)
-		return;
+	PSV_DEBUG("psv_digi_exit()");
 
 	gs_psv_audio_on = FALSE;
 
 	// Wait for the thread to finish before cleaning up.
-	waitForEvent(&gs_thread_end_event);
+	//waitForEvent(&gs_thread_end_event);
+
+	if (gs_audio_thread_UID >= 0){
+		sceKernelDeleteThread(gs_audio_thread_UID);
+		PSV_DEBUG("Deleted audio thread: 0x%x", gs_audio_thread_UID);
+		gs_audio_thread_UID = -1;
+	}
 
 	sceAudioOutReleasePort(gs_audio_port);
+	gs_audio_port = -1;
 	sceKernelDeleteMutex(gs_thread_end_event.mutex);
 	sceKernelDeleteCond(gs_thread_end_event.cond);
 	_mixer_exit();
 }
 
-static int digi_psv_buffer_size()
+static int psv_digi_buffer_size()
 {
    return SAMPLES_PER_BUFFER;
 }
@@ -277,4 +308,14 @@ static void waitForEvent(EVENT* event)
     }
 	sceKernelUnlockMutex(event->mutex, 1);
 
+}
+
+void al_psv_reset_sound()
+{
+	PSV_DEBUG("al_psv_reset_sound");
+	psv_digi_exit(0);
+	if (digi_psv.voices < 0)
+		digi_psv.voices = 0;
+	psv_digi_init(0, digi_psv.voices);
+	
 }

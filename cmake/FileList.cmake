@@ -325,17 +325,16 @@ set(ALLEGRO_SRC_MACOSX_FILES
 set(ALLEGRO_SRC_PSP_FILES
         src/psp/pdrivers.c
         src/psp/pfile.c
+        src/psp/pgfx.c
+        src/psp/pjoy.c
+        src/psp/pkey.c
+        src/psp/pmouse.c
+        src/psp/psound.c
         src/psp/psystem.c
         src/psp/ptimer.c
         src/psp/pvram.c
         src/psp/pvtable8.c
-		src/psp/pmouse.c
-        src/psp/pjoy.c
-        src/psp/pkey.c
-        src/psp/psound.c
-		src/psp/pgfx.c
         )
-
 set(ALLEGRO_SRC_PSV_FILES
         src/psv/pmain.c
         src/psv/pdrivers.c
@@ -347,6 +346,7 @@ set(ALLEGRO_SRC_PSV_FILES
         src/psv/psound.c
         src/psv/psystem.c
         src/psv/ptimer.c
+        src/psv/sfifo.c
         )
 
 set(ALLEGRO_INCLUDE_ALLEGRO_FILES
@@ -414,7 +414,7 @@ set(ALLEGRO_INCLUDE_ALLEGRO_PLATFORM_FILES
         include/allegro/platform/aintmac.h
         include/allegro/platform/aintosx.h
         include/allegro/platform/aintpsp.h
-		include/allegro/platform/aintpsv.h
+	include/allegro/platform/aintpsv.h
         include/allegro/platform/aintqnx.h
         include/allegro/platform/aintunix.h
         include/allegro/platform/aintwin.h
@@ -436,7 +436,7 @@ set(ALLEGRO_INCLUDE_ALLEGRO_PLATFORM_FILES
         # include/allegro/platform/alplatf.h.cmake
         include/allegro/platform/alpsp.h
         include/allegro/platform/alpspcfg.h
-		include/allegro/platform/alpsv.h
+	include/allegro/platform/alpsv.h
         include/allegro/platform/alpsvcfg.h
         include/allegro/platform/alqnx.h
         include/allegro/platform/alqnxcfg.h

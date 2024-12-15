@@ -20,6 +20,7 @@
 #define ALLEGRO_GFX_INL
 
 #include "allegro/debug.h"
+#include "psvita.h"
 
 #define ALLEGRO_IMPORT_GFX_ASM
 #include "asm.inl"
@@ -68,7 +69,10 @@ AL_INLINE(uintptr_t, bmp_write_line, (BITMAP *bmp, int lyne),
 
 AL_INLINE(uintptr_t, bmp_read_line, (BITMAP *bmp, int lyne),
 {
+   if (!bmp) sceClibPrintf("bmp_read_line(), bmp == NULL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
    _BMP_BANK_SWITCHER switcher = (_BMP_BANK_SWITCHER)bmp->read_bank;
+   if (!switcher) sceClibPrintf("bmp_read_line(), switcher == NULL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
    return switcher(bmp, lyne);
 })
 

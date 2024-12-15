@@ -972,6 +972,8 @@ int poll_mouse(void)
 
    if (mouse_driver->poll)
       mouse_driver->poll();
+   else
+	   return -1; // psvita fix
 
    update_mouse();
 

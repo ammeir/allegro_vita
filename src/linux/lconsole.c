@@ -166,7 +166,7 @@ static int init_console(void)
 	 close (console_fd);
 	 return 1;
       }
-#if 0
+
       /* OK, now fork into the background, detach from the current console,
        * and attach to the new one. */
       child = fork();
@@ -184,7 +184,7 @@ static int init_console(void)
 	 fprintf (stderr, "Allegro application is running on VT %d\n", tty);
 	 exit (0);
       }
-#endif
+
       /* We're the child.  Detach from our controlling terminal, and start
        * a new session. */
       close (console_fd);

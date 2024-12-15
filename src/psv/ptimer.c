@@ -18,7 +18,6 @@
  *      See readme.txt for copyright information.
  */
 
-
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
 #include "psvita.h"
@@ -26,23 +25,19 @@
 #include <psp2/rtc.h>
 #include <pthread.h>
 
-
-
 #define TIMER_TO_USEC(t)      ((SceUInt)((float)(t) / TIMERS_PER_SECOND * 1000000))
-#define PSVTIMER_TO_TIMER(t)  ((int)((t) * (TIMERS_PER_SECOND / (float)psv_tick_resolution)))
+#define PSVTIMER_TO_TIMER(t)  ((int)((t) * (TIMERS_PER_SECOND / (float)gs_tick_resolution)))
+#define USEC_TO_TIMER(x) ((unsigned long)(x) * (TIMERS_PER_SECOND / 1000000))
 
+static int		psv_timer_thread(SceSize args, void *argp);
+// Driver function implementations
+static int		psv_timer_init(void);
+static void		psv_timer_exit(void);
+static void		psv_rest(unsigned int time, void (*callback)(void));
 
-//static int psv_timer_thread();
-static int psv_timer_init(void);
-static void psv_timer_exit(void);
-static void psv_rest(unsigned int time, void (*callback)(void));
-
-
-static uint32_t psv_tick_resolution;
-static int psv_timer_on = FALSE;
-static SceUID timer_thread_UID;
-
-
+static uint32_t gs_tick_resolution;
+static int		gs_timer_on = FALSE;
+static SceUID	gs_timer_thread_UID = -1;
 
 TIMER_DRIVER timer_psv =
 {
@@ -58,12 +53,10 @@ TIMER_DRIVER timer_psv =
    psv_rest          /* rest */
 };
 
-
-
 /* psv_timer_thread:
  *  This thread measures the elapsed time.
  */
-void* psv_timer_thread(void* arg)
+static int psv_timer_thread(SceSize args, void *argp)
 {
 	PSV_DEBUG("psv_timer_thread");
 
@@ -75,7 +68,7 @@ void* psv_timer_thread(void* arg)
 
 	sceRtcGetCurrentTick(&old_tick);
 
-	while (psv_timer_on) {
+	while (gs_timer_on) {
 
 		/* Calculate actual time elapsed. */
 		sceRtcGetCurrentTick(&new_tick);
@@ -83,7 +76,6 @@ void* psv_timer_thread(void* arg)
 		long delta = new_tick.tick - old_tick.tick;
 
 		if (delta > 1000000){
-			//PSV_DEBUG("delta = %ld", delta);
 			// Unusually long delta. Propably user pressed the PS BUTTON. 
 			// We have to lower the interval value to prevent game freezing/stuttering.
 			interval = 10000;
@@ -112,13 +104,12 @@ static int psv_timer_init(void)
 {
 	PSV_DEBUG("psv_timer_init()");
 
-   /* Get the ticks per second */
-   psv_tick_resolution = sceRtcGetTickResolution();
+	/* Get the ticks per second */
+	gs_tick_resolution = sceRtcGetTickResolution();
 
-   PSV_DEBUG("psv_tick_resolution = %d", psv_tick_resolution);
+	//PSV_DEBUG("gs_tick_resolution = %d", gs_tick_resolution);
    
-   psv_timer_on = TRUE;
-
+	gs_timer_on = TRUE;
 
     SceKernelThreadInfo info;
     int priority = 32;
@@ -129,32 +120,40 @@ static int psv_timer_init(void)
         priority = info.currentPriority;
     }
 
-	timer_thread_UID = sceKernelCreateThread("psv_timer_thread", (void *)&psv_timer_thread, priority, 0x10000, 0, 0, NULL);
+	gs_timer_thread_UID = sceKernelCreateThread("psv_timer_thread", &psv_timer_thread, 0x10000100/*priority*/, 0x4000, 0, 0x10000, NULL);
 
-   if (timer_thread_UID < 0) {
-      ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot create timer thread"));
-      PSV_DEBUG("Cannot create timer thread!!!");
-	  psv_timer_exit();
-      return -1;
-   }
+	if (gs_timer_thread_UID < 0) {
+		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot create timer thread"));
+		PSV_DEBUG("Cannot create timer thread!!!");
+		psv_timer_exit();
+		return -1;
+	}
    
-   if (sceKernelStartThread(timer_thread_UID, 4, NULL) != 0) {
-      ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot start timer thread"));
-      psv_timer_exit();
-      return -1;
-   }
+	//sceKernelChangeThreadCpuAffinityMask(gs_timer_thread_UID, SCE_KERNEL_CPU_MASK_USER_1);
 
-   return 0;
+	if (sceKernelStartThread(gs_timer_thread_UID, 0, NULL) != 0) {
+		ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot start timer thread"));
+		PSV_DEBUG("Cannot start timer thread!!!");
+		psv_timer_exit();
+		return -1;
+	}
+
+	return 0;
 }
-
 
 /* psv_timer_exit:
  *  Shuts down the PSVITA timer thread.
  */
 static void psv_timer_exit(void)
 {
-   psv_timer_on = FALSE;
-   return;
+	PSV_DEBUG("psv_timer_exit()");
+	gs_timer_on = FALSE;
+	if (gs_timer_thread_UID >= 0){
+		sceKernelDeleteThread(gs_timer_thread_UID);
+		gs_timer_thread_UID = -1;
+	}
+
+	return;
 }
 
 static void psv_rest(unsigned int time, void (*callback)(void))

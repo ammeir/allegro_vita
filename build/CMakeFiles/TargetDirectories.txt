@@ -1,0 +1,13 @@
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/allegro.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/edit_cache.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/rebuild_cache.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/list_install_components.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/install.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/install/local.dir
+/home/ammeir/dev/allegro_vita/build/CMakeFiles/install/strip.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/edit_cache.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/rebuild_cache.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/list_install_components.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/install.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/install/local.dir
+/home/ammeir/dev/allegro_vita/build/docs/CMakeFiles/install/strip.dir

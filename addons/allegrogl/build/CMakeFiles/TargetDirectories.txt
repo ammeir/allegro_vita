@@ -1,0 +1,2 @@
+/home/ammeir/dev/allegro_vita/addons/allegrogl/build/CMakeFiles/edit_cache.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/build/CMakeFiles/rebuild_cache.dir

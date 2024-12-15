@@ -156,23 +156,43 @@ void lock_midi(MIDI *midi)
  */
 MIDI *load_midi(AL_CONST char *filename)
 {
+   PACKFILE *f;
+   MIDI *midi;
+   ASSERT(filename);
+
+   f = pack_fopen(filename, F_READ);
+   if (!f)
+      return NULL;
+
+   midi = load_midi_pf(f);
+
+   pack_fclose(f);
+
+   return midi;
+}
+
+
+
+/* load_midi_pf:
+ *  Reads a standard MIDI file from the packfile given, returning a MIDI
+ *  structure, or NULL on error.
+ *
+ *  If unsuccessful the offset into the file is unspecified, i.e. you must
+ *  either reset the offset to some known place or close the packfile. The
+ *  packfile is not closed by this function.
+ */
+MIDI *load_midi_pf(PACKFILE *fp)
+{
    int c;
    char buf[4];
    long data;
-   PACKFILE *fp;
    MIDI *midi;
    int num_tracks;
-   ASSERT(filename);
-
-   fp = pack_fopen(filename, F_READ);        /* open the file */
-   if (!fp)
-      return NULL;
+   ASSERT(fp);
 
    midi = _AL_MALLOC(sizeof(MIDI));              /* get some memory */
-   if (!midi) {
-      pack_fclose(fp);
+   if (!midi)
       return NULL;
-   }
 
    for (c=0; c<MIDI_TRACKS; c++) {
       midi->track[c].data = NULL;
@@ -231,13 +251,11 @@ MIDI *load_midi(AL_CONST char *filename)
 	 goto err;
    }
 
-   pack_fclose(fp);
    lock_midi(midi);
    return midi;
 
    /* oh dear... */
    err:
-   pack_fclose(fp);
    destroy_midi(midi);
    return NULL;
 }
@@ -505,13 +523,12 @@ END_OF_FUNCTION(_midi_allocate_voice);
  */
 static void midi_note_on(int channel, int note, int vol, int polite)
 {
-	//PSV_DEBUG("midi_note_on()");
    int c, layer, inst, bend, corrected_note;
 
    /* it's easy if the driver can handle raw MIDI data */
    if (midi_driver->raw_midi) {
       if (channel != 9)
-		note += patch_table[midi_channel[channel].patch].pitch;
+	 note += patch_table[midi_channel[channel].patch].pitch;
 
       midi_driver->raw_midi(0x90+channel);
       midi_driver->raw_midi(note);
@@ -522,12 +539,10 @@ static void midi_note_on(int channel, int note, int vol, int polite)
    /* if the note is already on, turn it off */
    for (layer=0; layer<MIDI_LAYERS; layer++) {
       if (midi_channel[channel].note[note][layer] >= 0) {
-		midi_note_off(channel, note);
-		return;
+	 midi_note_off(channel, note);
+	 return;
       }
    }
-
-   
 
    /* if zero volume and the note isn't playing, we can just ignore it */
    if (vol == 0)
@@ -536,22 +551,22 @@ static void midi_note_on(int channel, int note, int vol, int polite)
    if (channel != 9) {
       /* are there any free voices? */
       for (c=0; c<midi_driver->voices; c++)
-		if ((midi_voice[c].note < 0) && 
+	 if ((midi_voice[c].note < 0) && 
 	     ((c < midi_driver->xmin) || (c > midi_driver->xmax)))
-			break;
+	    break;
 
       /* if there are no free voices, remember the note for later */
       if ((c >= midi_driver->voices) && (polite)) {
-		for (c=0; c<MIDI_VOICES; c++) {
-			if (midi_waiting[c].note < 0) {
-				midi_waiting[c].channel = channel;
-				midi_waiting[c].note = note;
-				midi_waiting[c].volume = vol;
-				break;
-			}
-		}
-		return;
-	  }
+	 for (c=0; c<MIDI_VOICES; c++) {
+	    if (midi_waiting[c].note < 0) {
+	       midi_waiting[c].channel = channel;
+	       midi_waiting[c].note = note;
+	       midi_waiting[c].volume = vol;
+	       break;
+	    }
+	 }
+	 return;
+      }
    }
 
    /* drum sound? */
@@ -572,10 +587,8 @@ static void midi_note_on(int channel, int note, int vol, int polite)
    midi_alloc_note = note;
    midi_alloc_vol = vol;
 
-   int ret = sort_out_volume(channel, vol);
-
    midi_driver->key_on(inst, corrected_note, bend, 
-		       ret/*sort_out_volume(channel, vol)*/, 
+		       sort_out_volume(channel, vol), 
 		       midi_channel[channel].pan);
 }
 
@@ -796,8 +809,6 @@ END_OF_STATIC_FUNCTION(process_meta_event);
  */
 static void process_midi_event(AL_CONST unsigned char **pos, unsigned char *running_status, long *timer)
 {
-	//PSV_DEBUG("process_midi_event()");
-
    unsigned char byte1, byte2; 
    int channel;
    unsigned char event;
@@ -829,72 +840,72 @@ static void process_midi_event(AL_CONST unsigned char **pos, unsigned char *runn
    switch (event>>4) {
 
       case 0x08:                                /* note off */
-		midi_note_off(channel, byte1);
-		(*pos) += 2;
-		break;
+	 midi_note_off(channel, byte1);
+	 (*pos) += 2;
+	 break;
 
       case 0x09:                                /* note on */
-		midi_note_on(channel, byte1, byte2, 1);
-		(*pos) += 2;
-		break;
+	 midi_note_on(channel, byte1, byte2, 1);
+	 (*pos) += 2;
+	 break;
 
       case 0x0A:                                /* note aftertouch */
-		(*pos) += 2;
-		break;
+	 (*pos) += 2;
+	 break;
 
       case 0x0B:                                /* control change */
-		process_controller(channel, byte1, byte2);
-		(*pos) += 2;
-		break;
+	 process_controller(channel, byte1, byte2);
+	 (*pos) += 2;
+	 break;
 
       case 0x0C:                                /* program change */
-		midi_channel[channel].patch = byte1;
-		if (midi_driver->raw_midi)
-			raw_program_change(channel, byte1);
-		(*pos) += 1;
-		break;
+	 midi_channel[channel].patch = byte1;
+	 if (midi_driver->raw_midi)
+	    raw_program_change(channel, byte1);
+	 (*pos) += 1;
+	 break;
 
       case 0x0D:                                /* channel aftertouch */
-		(*pos) += 1;
-		break;
+	 (*pos) += 1;
+	 break;
 
       case 0x0E:                                /* pitch bend */
-		midi_channel[channel].new_pitch_bend = byte1 + (byte2<<7);
-		(*pos) += 2;
-		break;
+	 midi_channel[channel].new_pitch_bend = byte1 + (byte2<<7);
+	 (*pos) += 2;
+	 break;
 
       case 0x0F:                                /* special event */
-		 switch (event) {
-			case 0xF0:                          /* sysex */
-			case 0xF7: 
-			   l = parse_var_len(pos);
-			   if (midi_sysex_callback)
-					midi_sysex_callback(*pos, l);
-			   (*pos) += l;
-			   break;
+	 switch (event) {
+	    case 0xF0:                          /* sysex */
+	    case 0xF7: 
+	       l = parse_var_len(pos);
+	       if (midi_sysex_callback)
+		  midi_sysex_callback(*pos, l);
+	       (*pos) += l;
+	       break;
 
-			case 0xF2:                          /* song position */
-			   (*pos) += 2;
-			   break;
+	    case 0xF2:                          /* song position */
+	       (*pos) += 2;
+	       break;
 
-			case 0xF3:                          /* song select */
-			   (*pos)++;
-			   break;
+	    case 0xF3:                          /* song select */
+	       (*pos)++;
+	       break;
 
-			case 0xFF:                          /* meta-event */
-			   process_meta_event(pos, timer);
-			   break;
+	    case 0xFF:                          /* meta-event */
+	       process_meta_event(pos, timer);
+	       break;
 
-			default:
-			   /* the other special events don't have any data bytes,
-			  so we don't need to bother skipping past them */
-			   break;
-		 }
-		 break;
+	    default:
+	       /* the other special events don't have any data bytes,
+		  so we don't need to bother skipping past them */
+	       break;
+	 }
+	 break;
 
       default:
-		/* something has gone badly wrong if we ever get to here */
-		break;
+	 /* something has gone badly wrong if we ever get to here */
+	 break;
    }
 }
 
@@ -907,140 +918,135 @@ END_OF_STATIC_FUNCTION(process_midi_event);
  */
 static void midi_player(void)
 {
-	static int call_count = 0;
+   int c;
+   long l;
+   int active;
 
-	call_count++;
+   if (!midifile)
+      return;
 
-	int c;
-	long l;
-	int active;
+   if (midi_semaphore) {
+      midi_timer_speed += BPS_TO_TIMER(MIDI_TIMER_FREQUENCY);
+      install_int_ex(midi_player, BPS_TO_TIMER(MIDI_TIMER_FREQUENCY));
+      return;
+   }
 
-	if (!midifile)
-		return;
+   midi_semaphore = TRUE;
+   _midi_tick++;
 
-	if (midi_semaphore) {
-		midi_timer_speed += BPS_TO_TIMER(MIDI_TIMER_FREQUENCY);
-		install_int_ex(midi_player, BPS_TO_TIMER(MIDI_TIMER_FREQUENCY));
-		return;
-	}
+   midi_timers += midi_timer_speed;
+   midi_time = midi_timers / TIMERS_PER_SECOND;
 
-	midi_semaphore = TRUE;
-	_midi_tick++;
+   do_it_all_again:
 
-	midi_timers += midi_timer_speed;
-	midi_time = midi_timers / TIMERS_PER_SECOND;
+   for (c=0; c<MIDI_VOICES; c++)
+      midi_waiting[c].note = -1;
 
-	do_it_all_again:
+   /* deal with each track in turn... */
+   for (c=0; c<MIDI_TRACKS; c++) { 
+      if (midi_track[c].pos) {
+	 midi_track[c].timer -= midi_timer_speed;
 
-	for (c=0; c<MIDI_VOICES; c++)
-		midi_waiting[c].note = -1;
+	 /* while events are waiting, process them */
+	 while (midi_track[c].timer <= 0) { 
+	    process_midi_event((AL_CONST unsigned char**) &midi_track[c].pos, 
+			       &midi_track[c].running_status,
+			       &midi_track[c].timer); 
 
-	/* deal with each track in turn... */
-	for (c=0; c<MIDI_TRACKS; c++) { 
+	    /* read next time offset */
+	    if (midi_track[c].pos) { 
+	       l = parse_var_len((AL_CONST unsigned char**) &midi_track[c].pos);
+	       l *= midi_speed;
+	       midi_track[c].timer += l;
+	    }
+	 }
+      }
+   }
 
-		if (midi_track[c].pos) {
-			midi_track[c].timer -= midi_timer_speed;
+   /* update global position value */
+   midi_pos_counter -= midi_timer_speed;
+   while (midi_pos_counter <= 0) {
+      midi_pos_counter += midi_pos_speed;
+      midi_pos++;
+   }
 
-			/* while events are waiting, process them */
-			while (midi_track[c].timer <= 0) { 
-				process_midi_event((AL_CONST unsigned char**) &midi_track[c].pos, 
-					&midi_track[c].running_status,
-					&midi_track[c].timer); 
+   /* tempo change? */
+   if (midi_new_speed > 0) {
+      for (c=0; c<MIDI_TRACKS; c++) {
+	 if (midi_track[c].pos) {
+	    midi_track[c].timer /= midi_speed;
+	    midi_track[c].timer *= midi_new_speed;
+	 }
+      }
+      midi_pos_counter /= midi_speed;
+      midi_pos_counter *= midi_new_speed;
 
-				/* read next time offset */
-				if (midi_track[c].pos) { 
-					l = parse_var_len((AL_CONST unsigned char**) &midi_track[c].pos);
-					l *= midi_speed;
-					midi_track[c].timer += l;
-				}
-			}
-		}
-	}
+      midi_speed = midi_new_speed;
+      midi_pos_speed = midi_new_speed * midifile->divisions;
+      midi_new_speed = -1;
+   }
 
-	/* update global position value */
-	midi_pos_counter -= midi_timer_speed;
-	while (midi_pos_counter <= 0) {
-		midi_pos_counter += midi_pos_speed;
-		midi_pos++;
-	}
+   /* figure out how long until we need to be called again */
+   active = 0;
+   midi_timer_speed = LONG_MAX;
+   for (c=0; c<MIDI_TRACKS; c++) {
+      if (midi_track[c].pos) {
+	 active = 1;
+	 if (midi_track[c].timer < midi_timer_speed)
+	    midi_timer_speed = midi_track[c].timer;
+      }
+   }
 
-	/* tempo change? */
-	if (midi_new_speed > 0) {
-		for (c=0; c<MIDI_TRACKS; c++) {
-			if (midi_track[c].pos) {
-				midi_track[c].timer /= midi_speed;
-				midi_track[c].timer *= midi_new_speed;
-			}
-		}
-		midi_pos_counter /= midi_speed;
-		midi_pos_counter *= midi_new_speed;
+   /* end of the music? */
+   if ((!active) || ((midi_loop_end > 0) && (midi_pos >= midi_loop_end))) {
+      if ((midi_loop) && (!midi_looping)) {
+	 if (midi_loop_start > 0) {
+	    remove_int(midi_player);
+	    midi_semaphore = FALSE;
+	    midi_looping = TRUE;
+	    if (midi_seek(midi_loop_start) != 0) {
+	       midi_looping = FALSE;
+	       stop_midi(); 
+	       return;
+	    }
+	    midi_looping = FALSE;
+	    midi_semaphore = TRUE;
+	    goto do_it_all_again;
+	 }
+	 else {
+	    for (c=0; c<16; c++) {
+	       all_notes_off(c);
+	       all_sound_off(c);
+	    }
+	    prepare_to_play(midifile);
+	    goto do_it_all_again;
+	 }
+      }
+      else {
+	 stop_midi(); 
+	 midi_semaphore = FALSE;
+	 return;
+      }
+   }
 
-		midi_speed = midi_new_speed;
-		midi_pos_speed = midi_new_speed * midifile->divisions;
-		midi_new_speed = -1;
-	}
+   /* reprogram the timer */
+   if (midi_timer_speed < BPS_TO_TIMER(MIDI_TIMER_FREQUENCY))
+      midi_timer_speed = BPS_TO_TIMER(MIDI_TIMER_FREQUENCY);
 
-	/* figure out how long until we need to be called again */
-	active = 0;
-	midi_timer_speed = LONG_MAX;
-	for (c=0; c<MIDI_TRACKS; c++) {
-		if (midi_track[c].pos) {
-			active = 1;
-			if (midi_track[c].timer < midi_timer_speed)
-				midi_timer_speed = midi_track[c].timer;
-		}
-	}
+   if (!midi_seeking) 
+      install_int_ex(midi_player, midi_timer_speed);
 
-	/* end of the music? */
-	if ((!active) || ((midi_loop_end > 0) && (midi_pos >= midi_loop_end))) {
-		if ((midi_loop) && (!midi_looping)) {
-			if (midi_loop_start > 0) {
-				remove_int(midi_player);
-				midi_semaphore = FALSE;
-				midi_looping = TRUE;
-				if (midi_seek(midi_loop_start) != 0) {
-				   midi_looping = FALSE;
-				   stop_midi(); 
-				   return;
-				}
-				midi_looping = FALSE;
-				midi_semaphore = TRUE;
-				goto do_it_all_again;
-			}
-			else {
-				for (c=0; c<16; c++) {
-				   all_notes_off(c);
-				   all_sound_off(c);
-				}
-				prepare_to_play(midifile);
-				goto do_it_all_again;
-			}
-		}
-		else {
-			stop_midi(); 
-			midi_semaphore = FALSE;
-			return;
-		}
-	}
-
-	/* reprogram the timer */
-	if (midi_timer_speed < BPS_TO_TIMER(MIDI_TIMER_FREQUENCY))
-		midi_timer_speed = BPS_TO_TIMER(MIDI_TIMER_FREQUENCY);
-
-	if (!midi_seeking) 
-		install_int_ex(midi_player, midi_timer_speed);
-
-	/* controller changes are cached and only processed here, so we can 
+   /* controller changes are cached and only processed here, so we can 
       condense streams of controller data into just a few voice updates */ 
-	update_controllers();
+   update_controllers();
 
-	/* and deal with any notes that are still waiting to be played */
-	for (c=0; c<MIDI_VOICES; c++)
-		if (midi_waiting[c].note >= 0)
-	
-	midi_note_on(midi_waiting[c].channel, midi_waiting[c].note, midi_waiting[c].volume, 0);
+   /* and deal with any notes that are still waiting to be played */
+   for (c=0; c<MIDI_VOICES; c++)
+      if (midi_waiting[c].note >= 0)
+	 midi_note_on(midi_waiting[c].channel, midi_waiting[c].note,
+		      midi_waiting[c].volume, 0);
 
-	midi_semaphore = FALSE;
+   midi_semaphore = FALSE;
 }
 
 END_OF_STATIC_FUNCTION(midi_player);
@@ -1117,19 +1123,17 @@ static void midi_exit(void)
  */
 static int load_patches(MIDI *midi)
 {
-	//PSV_DEBUG("load_patches()");
+   char patches[128], drums[128];
+   unsigned char *p, *end;
+   unsigned char running_status, event;
+   long l;
+   int c;
+   ASSERT(midi);
 
-	char patches[128], drums[128];
-	unsigned char *p, *end;
-	unsigned char running_status, event;
-	long l;
-	int c;
-	ASSERT(midi);
+   for (c=0; c<128; c++)                        /* initialise to unused */
+      patches[c] = drums[c] = FALSE;
 
-	for (c=0; c<128; c++)                        /* initialise to unused */
-		patches[c] = drums[c] = FALSE;
-
-	patches[0] = TRUE;                           /* always load the piano */
+   patches[0] = TRUE;                           /* always load the piano */
 
    for (c=0; c<MIDI_TRACKS; c++) {              /* for each track... */
       p = midi->track[c].data;
@@ -1159,7 +1163,7 @@ static int load_patches(MIDI *midi)
 
 	    case 0x09:                          /* note on, is it a drum? */
 	       if ((event & 0x0F) == 9)
-				drums[*p] = TRUE;
+		  drums[*p] = TRUE;
 	       p += 2;
 	       break;
 
@@ -1279,21 +1283,20 @@ END_OF_STATIC_FUNCTION(prepare_to_play);
  */
 int play_midi(MIDI *midi, int loop)
 {
-	//PSV_DEBUG("play_midi()");
-    int c;
+   int c;
 
-	remove_int(midi_player);
-	
+   remove_int(midi_player);
+
    for (c=0; c<16; c++) {
       all_notes_off(c);
       all_sound_off(c);
    }
 
-   if (midi) {
+  if (midi) {
 
 		if (!midi_loaded_patches){
 			if (load_patches(midi) != 0){
-				PSV_DEBUG("load_patches() failed!");
+				//PSV_DEBUG("load_patches() failed!");
 				return -1;
 			}
 		}
@@ -1311,9 +1314,9 @@ int play_midi(MIDI *midi, int loop)
       midifile = NULL;
 
       if (midi_pos > 0)
-		midi_pos = -midi_pos;
+	 midi_pos = -midi_pos;
       else if (midi_pos == 0)
-		midi_pos = -1;
+	 midi_pos = -1;
    }
 
    return 0;

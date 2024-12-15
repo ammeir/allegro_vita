@@ -31,7 +31,7 @@
 #endif
 
 /* DMC requires a DllMain() function, or else the DLL hangs. */
-#ifndef ALLEGRO_STATICLINK
+#if !defined(ALLEGRO_STATICLINK) && defined(ALLEGRO_DMC)
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason, LPVOID lpReserved)
 {
    return TRUE;
@@ -491,7 +491,7 @@ int _WinMain(void *_main, void *hInst, void *hPrev, char *Cmd, int nShow)
 
    /* can't use parameter because it doesn't include the executable name */
    cmdline = GetCommandLine();
-   i = strlen(cmdline) + 1;
+   i = (int)strlen(cmdline) + 1;
    argbuf = _AL_MALLOC(i);
    memcpy(argbuf, cmdline, i);
 

@@ -65,8 +65,7 @@ AL_FUNC(void, vmm_free_mem, (uintptr_t base, unsigned int size));
 
 /* PSP controller stuff. */
 #define SAMPLING_CYCLE 0
-//#define SAMPLING_MODE  PSP_CTRL_MODE_DIGITAL
-#define SAMPLING_MODE  SCE_CTRL_MODE_DIGITAL
+#define SAMPLING_MODE  PSP_CTRL_MODE_DIGITAL
 
 AL_FUNC(void, _psp_init_controller, (int cycle, int mode));
 

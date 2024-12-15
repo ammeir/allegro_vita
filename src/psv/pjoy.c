@@ -74,7 +74,6 @@ JOYSTICK_DRIVER joystick_psv = {
  */
 void psv_init_controller(int cycle, int mode)
 {
-   //sceCtrlSetSamplingCycle(cycle);
    sceCtrlSetSamplingMode(mode);
 }
 
@@ -119,8 +118,6 @@ static void psv_joy_exit(void)
 static int psv_joy_poll(void)
 {
 	//PSV_DEBUG("psv_joy_poll()");
-	// Note: UNTESTED CODE.
-
 	SceCtrlData pad;
 
 	sceCtrlPeekBufferPositive(0, &pad, 1);

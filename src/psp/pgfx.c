@@ -27,13 +27,13 @@
 #include <pspgu.h>
 #include <psputils.h>
 
-#ifndef ALLEGRO_PSV
+#ifndef ALLEGRO_PSP
    #error something is wrong with the makefile
 #endif
 
 
-#define MAX_SCR_WIDTH                  (960)
-#define MAX_SCR_HEIGHT                 (544)
+#define MAX_SCR_WIDTH                  (480)
+#define MAX_SCR_HEIGHT                 (272)
 #define MIN_BUF_WIDTH                  (512)
 #define PALETTE_PIXEL_SIZE               (4)
 #define VIDEO_REFRESH_RATE              (60)

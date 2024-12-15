@@ -9,6 +9,9 @@
 #include <string.h>
 #include <stdio.h>
 
+// PSVITA FIX
+//#include "vitaGL.h"
+
 #include "allegro.h"
 
 #include "alleggl.h"
@@ -16,6 +19,8 @@
 
 #ifdef ALLEGRO_MACOSX
 #include <OpenGL/glu.h>
+#elif defined PSVITA
+//#include <GLES2/gl2.h>
 #else
 #include <GL/glu.h>
 #endif

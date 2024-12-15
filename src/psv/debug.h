@@ -6,9 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+#include <psp2/kernel/clib.h>
+
+// Use psp2shell utility to read the sceClibPrintf debug messages
+#define printf sceClibPrintf
 
 
-#ifdef PSV_DEBUG_CODE
+//#ifdef PSV_DEBUG_CODE
 static void PSV_DEBUG(const char* str, ...) {
 	va_list list;
 	char buf[512];
@@ -25,11 +29,14 @@ static void PSV_DEBUG(const char* str, ...) {
 		fprintf(fp, "\x0D\x0A"); // new line
 		fclose(fp);
 	}
-}
-#else
-static void PSV_DEBUG(const char* str, ...) {}
-#endif
 
+	printf(buf);
+	printf("\n");
+
+}
+//#else
+//static void PSV_DEBUG(const char* str, ...) {}
+//#endif
 
 
 #endif

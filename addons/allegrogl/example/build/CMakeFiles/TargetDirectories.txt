@@ -1,0 +1,6 @@
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/al_gl_test.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/al_gl_test-velf.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/al_gl_test.self-self.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/al_gl_test.vpk-vpk.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/edit_cache.dir
+/home/ammeir/dev/allegro_vita/addons/allegrogl/example/build/CMakeFiles/rebuild_cache.dir

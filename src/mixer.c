@@ -1232,7 +1232,6 @@ END_OF_FUNCTION(_mixer_init_voice);
  */
 void _mixer_release_voice(int voice)
 {
-
 #ifdef ALLEGRO_MULTITHREADED
    system_driver->lock_mutex(mixer_mutex);
 #endif

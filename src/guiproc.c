@@ -26,7 +26,7 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
+
 
 #ifdef ALLEGRO_WINDOWS
 /* exported address of d_clear_proc */
@@ -151,7 +151,6 @@ int d_yield_proc(int msg, DIALOG *d, int c)
  */
 int d_clear_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_clear_proc()");
    ASSERT(d);
 
 #ifdef ALLEGRO_WINDOWS
@@ -187,7 +186,6 @@ int d_clear_proc(int msg, DIALOG *d, int c)
  */
 int d_box_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_box_proc()");
    ASSERT(d);
    if (msg==MSG_DRAW) {
       int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
@@ -207,7 +205,6 @@ int d_box_proc(int msg, DIALOG *d, int c)
  */
 int d_shadow_box_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_shadow_box_proc()");
    ASSERT(d);
    if (msg==MSG_DRAW) {
       int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
@@ -220,7 +217,6 @@ int d_shadow_box_proc(int msg, DIALOG *d, int c)
       hline(gui_bmp, d->x+1, d->y+d->h-1, d->x+d->w-1, black);
    }
 
-   //PSV_DEBUG("d_shadow_box_proc() - end");
    return D_O_K;
 }
 
@@ -231,7 +227,6 @@ int d_shadow_box_proc(int msg, DIALOG *d, int c)
  */
 int d_bitmap_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_bitmap_proc()");
    BITMAP *b;
    ASSERT(d);
 
@@ -249,7 +244,6 @@ int d_bitmap_proc(int msg, DIALOG *d, int c)
  */
 int d_text_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_text_proc()");
    ASSERT(d);
    if (msg==MSG_DRAW) {
       int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
@@ -274,7 +268,6 @@ int d_text_proc(int msg, DIALOG *d, int c)
  */
 int d_ctext_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_ctext_proc()");
    ASSERT(d);
    if (msg==MSG_DRAW) {
       int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
@@ -288,7 +281,6 @@ int d_ctext_proc(int msg, DIALOG *d, int c)
       font = oldfont;
    }
 
-   //PSV_DEBUG("d_ctext_proc() - end");
    return D_O_K;
 }
 
@@ -300,7 +292,6 @@ int d_ctext_proc(int msg, DIALOG *d, int c)
  */
 int d_rtext_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_rtext_proc()");
    ASSERT(d);
    if (msg==MSG_DRAW) {
       int fg = (d->flags & D_DISABLED) ? gui_mg_color : d->fg;
@@ -327,7 +318,6 @@ int d_rtext_proc(int msg, DIALOG *d, int c)
  */
 int d_button_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_button_proc()");
    BITMAP *gui_bmp;
    int state1, state2;
    int black;
@@ -417,8 +407,6 @@ int d_button_proc(int msg, DIALOG *d, int c)
 	 break; 
    }
 
-   //PSV_DEBUG("d_button_proc() - end");
-
    return D_O_K;
 }
 
@@ -430,7 +418,6 @@ int d_button_proc(int msg, DIALOG *d, int c)
  */
 int d_check_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_check_proc()");
    BITMAP *gui_bmp = gui_get_screen();
    int x, y, h;
    int fg, bg;
@@ -472,7 +459,6 @@ int d_check_proc(int msg, DIALOG *d, int c)
  */
 int d_radio_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_radio_proc()");
    BITMAP *gui_bmp = gui_get_screen();
    int x, y, h, r, ret, fg, bg;
    int centerx, centery;
@@ -562,7 +548,6 @@ int d_radio_proc(int msg, DIALOG *d, int c)
  */
 int d_icon_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_icon_proc()");
    BITMAP *butimage;
    BITMAP *gui_bmp;
    int butx;
@@ -633,7 +618,6 @@ int d_icon_proc(int msg, DIALOG *d, int c)
  */
 int d_keyboard_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_keyboard_proc()");
    int (*proc)(void);
    int ret = D_O_K;
    ASSERT(d);
@@ -671,7 +655,6 @@ int d_keyboard_proc(int msg, DIALOG *d, int c)
  */
 int d_edit_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_edit_proc()");
    static int ignore_next_uchar = FALSE;
    BITMAP *gui_bmp;
    int last_was_space, new_pos, i, k;
@@ -855,7 +838,6 @@ int d_edit_proc(int msg, DIALOG *d, int c)
 	 break;
    }
 
-   //PSV_DEBUG("d_edit_proc() - end");
    return D_O_K;
 }
 
@@ -1195,7 +1177,6 @@ void _draw_listbox(DIALOG *d)
  */
 int d_list_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_list_proc()");
    int listsize, i, bottom, height, bar, orig;
    char *sel = d->dp2;
    int redraw = FALSE;
@@ -1351,7 +1332,6 @@ int d_list_proc(int msg, DIALOG *d, int c)
  */
 int d_text_list_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_text_list_proc()");
    int listsize, i, a, failure;
    char *selected, *thisitem;
    char *sel = d->dp2;
@@ -1625,7 +1605,6 @@ void _draw_textbox(char *thetext, int *listsize, int draw, int offset,
  */
 int d_textbox_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_textbox_proc()");
    int height, bar, ret = D_O_K;
    int start, top, bottom, l;
    int used, delta;
@@ -1784,7 +1763,6 @@ int d_textbox_proc(int msg, DIALOG *d, int c)
  */
 int d_slider_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("d_slider_proc()");
    BITMAP *gui_bmp = gui_get_screen();
    BITMAP *slhan = NULL;
    int oldpos, newpos;

@@ -30,7 +30,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 #ifndef ALLEGRO_MPW
    #include <sys/stat.h>
@@ -143,20 +142,17 @@ char *fix_filename_slashes(char *filename)
  */
 char *canonicalize_filename(char *dest, AL_CONST char *filename, int size)
 {
-	//PSV_DEBUG("canonicalize_filename()");
-	//PSV_DEBUG("filename = %s", filename);
+   int saved_errno = errno;
+   char buf[1024], buf2[1024];
+   char *p;
+   int pos = 0;
+   int drive = -1;
+   int c1, i;
+   ASSERT(dest);
+   ASSERT(filename);
+   ASSERT(size >= 0);
 
-	int saved_errno = errno;
-	char buf[1024], buf2[1024];
-	char *p;
-	int pos = 0;
-	int drive = -1;
-	int c1, i;
-	ASSERT(dest);
-	ASSERT(filename);
-	ASSERT(size >= 0);
-
-#if (DEVICE_SEPARATOR != 0) && (DEVICE_SEPARATOR != '\0')
+   #if (DEVICE_SEPARATOR != 0) && (DEVICE_SEPARATOR != '\0')
 
 #ifdef ALLEGRO_PSV
 
@@ -207,98 +203,97 @@ char *canonicalize_filename(char *dest, AL_CONST char *filename, int size)
     pos += usetc(buf+pos, DEVICE_SEPARATOR);
 
 #endif
-#endif
+   #endif
 
-#ifdef ALLEGRO_UNIX
+   #ifdef ALLEGRO_UNIX
 
-	/* if the filename starts with ~ then it's relative to a home directory */
-	if ((ugetc(filename) == '~')) {
-		AL_CONST char *tail = filename + uwidth(filename); /* could be the username */
-		char *home = NULL;                /* their home directory */
+      /* if the filename starts with ~ then it's relative to a home directory */
+      if ((ugetc(filename) == '~')) {
+	 AL_CONST char *tail = filename + uwidth(filename); /* could be the username */
+	 char *home = NULL;                /* their home directory */
 
-		if (ugetc(tail) == '/' || !ugetc(tail)) {
-			/* easy */
-			home = getenv("HOME");
-			if (home)
-				home = _al_strdup(home);
-		}
-		else {
-			/* harder */
-			char *username = (char *)tail, *ascii_username, *ch;
-			int userlen;
-			struct passwd *pwd;
+	 if (ugetc(tail) == '/' || !ugetc(tail)) {
+	    /* easy */
+	    home = getenv("HOME");
+	    if (home)
+	       home = _al_strdup(home);
+	 }
+	 else {
+	    /* harder */
+	    char *username = (char *)tail, *ascii_username, *ch;
+	    int userlen;
+	    struct passwd *pwd;
 
-			/* find the end of the username */
-			tail = ustrchr(username, '/');
-			if (!tail)
-				tail = ustrchr(username, '\0');
+	    /* find the end of the username */
+	    tail = ustrchr(username, '/');
+	    if (!tail)
+	       tail = ustrchr(username, '\0');
 
-			/* this ought to be the ASCII length, but I can't see a Unicode
-			* function to return the difference in characters between two
-			* pointers. This code is safe on the assumption that ASCII is
-			* the most efficient encoding, but wasteful of memory */
-			userlen = tail - username + ucwidth('\0');
-			ascii_username = _AL_MALLOC_ATOMIC(userlen);
+	    /* this ought to be the ASCII length, but I can't see a Unicode
+	     * function to return the difference in characters between two
+	     * pointers. This code is safe on the assumption that ASCII is
+	     * the most efficient encoding, but wasteful of memory */
+	    userlen = tail - username + ucwidth('\0');
+	    ascii_username = _AL_MALLOC_ATOMIC(userlen);
 
-			if (ascii_username) {
-				/* convert the username to ASCII, find the password entry,
-				* and copy their home directory. */
-				do_uconvert(username, U_CURRENT, ascii_username, U_ASCII, userlen);
+	    if (ascii_username) {
+	       /* convert the username to ASCII, find the password entry,
+		* and copy their home directory. */
+	       do_uconvert(username, U_CURRENT, ascii_username, U_ASCII, userlen);
 
-				if ((ch = strchr(ascii_username, '/')))
-					*ch = '\0';
+	       if ((ch = strchr(ascii_username, '/')))
+		  *ch = '\0';
 
-				setpwent();
+	       setpwent();
 
-				while (((pwd = getpwent()) != NULL) && 
-					(strcmp(pwd->pw_name, ascii_username) != 0))
-				;
+	       while (((pwd = getpwent()) != NULL) && 
+		      (strcmp(pwd->pw_name, ascii_username) != 0))
+		  ;
 
-				_AL_FREE(ascii_username);
+	       _AL_FREE(ascii_username);
 
-				if (pwd)
-					home = _al_strdup(pwd->pw_dir);
+	       if (pwd)
+		  home = _al_strdup(pwd->pw_dir);
 
-				endpwent();
-			}
-		}
+	       endpwent();
+	    }
+	 }
 
-		/* If we got a home directory, prepend it to the filename. Otherwise
-		* we leave the filename alone, like bash but not tcsh; bash is better
-		* anyway. :)
-		*/
-		if (home) {
-			do_uconvert(home, U_ASCII, buf+pos, U_CURRENT, sizeof(buf)-pos);
-			_AL_FREE(home);
-			pos = ustrsize(buf);
-			filename = tail;
-			goto no_relativisation;
-		}
-	}
+	 /* If we got a home directory, prepend it to the filename. Otherwise
+	  * we leave the filename alone, like bash but not tcsh; bash is better
+	  * anyway. :)
+	  */
+	 if (home) {
+	    do_uconvert(home, U_ASCII, buf+pos, U_CURRENT, sizeof(buf)-pos);
+	    _AL_FREE(home);
+	    pos = ustrsize(buf);
+	    filename = tail;
+	    goto no_relativisation;
+	 }
+      }
 
-#endif   /* Unix */
+   #endif   /* Unix */
 
-	/* if the filename is relative, make it absolute */
-	if ((ugetc(filename) != '/') && (ugetc(filename) != OTHER_PATH_SEPARATOR) && (ugetc(filename) != '#')) {
-		_al_getdcwd(drive, buf2, sizeof(buf2) - ucwidth(OTHER_PATH_SEPARATOR));
-		put_backslash(buf2);
+   /* if the filename is relative, make it absolute */
+   if ((ugetc(filename) != '/') && (ugetc(filename) != OTHER_PATH_SEPARATOR) && (ugetc(filename) != '#')) {
+      _al_getdcwd(drive, buf2, sizeof(buf2) - ucwidth(OTHER_PATH_SEPARATOR));
+      put_backslash(buf2);
 
-		p = buf2;
-		if ((utolower(p[0]) >= 'a') && (utolower(p[0]) <= 'z') && (p[1] == DEVICE_SEPARATOR))
-			p += 2;
+      p = buf2;
+      if ((utolower(p[0]) >= 'a') && (utolower(p[0]) <= 'z') && (p[1] == DEVICE_SEPARATOR))
+	 p += 2;
 
-		ustrzcpy(buf+pos, sizeof(buf)-pos, p);
-		pos = ustrsize(buf);
-	}
+      ustrzcpy(buf+pos, sizeof(buf)-pos, p);
+      pos = ustrsize(buf);
+   }
 
-#ifdef ALLEGRO_UNIX
-	no_relativisation:
-#endif
+ #ifdef ALLEGRO_UNIX
+   no_relativisation:
+ #endif
 
 #ifdef ALLEGRO_PSV
    no_relativisation:
 #endif
-
    /* add our filename, and clean it up a bit */
    ustrzcpy(buf+pos, sizeof(buf)-pos, filename);
 
@@ -520,7 +515,7 @@ int is_relative_filename(AL_CONST char *filename)
    /* Filenames that contain a device separator (DOS/Windows)
     * or start with a '/' (Unix) are considered absolute.
     */
-#if (defined ALLEGRO_DOS) || (defined ALLEGRO_WINDOWS)
+#if (defined ALLEGRO_DOS) || (defined ALLEGRO_WINDOWS) || (defined ALLEGRO_PSV)
    if (ustrchr(filename, DEVICE_SEPARATOR)) 
       return FALSE;
 #endif
@@ -940,9 +935,6 @@ int for_each_file(AL_CONST char *name, int attrib, void (*callback)(AL_CONST cha
  */
 int for_each_file_ex(AL_CONST char *name, int in_attrib, int out_attrib, int (*callback)(AL_CONST char *filename, int attrib, void *param), void *param)
 {
-   //PSV_DEBUG("for_each_file_ex()");
-   //PSV_DEBUG("name = %s", name);
-
    char buf[1024];
    struct al_ffblk info;
    int ret, c = 0;
@@ -954,26 +946,22 @@ int for_each_file_ex(AL_CONST char *name, int in_attrib, int out_attrib, int (*c
    if (al_findfirst(name, &info, ~out_attrib) != 0) {
       /* no entry is not an error for for_each_file_ex() */
       if (*allegro_errno == ENOENT)
-	     *allegro_errno = 0;
+	 *allegro_errno = 0;
 
       return 0;
    }
 
-	do {
-		if ((~info.attrib & in_attrib) == 0) {
-			replace_filename(buf, name, info.name, sizeof(buf));
-			ret = (*callback)(buf, info.attrib, param);
+   do {
+      if ((~info.attrib & in_attrib) == 0) {
+	 replace_filename(buf, name, info.name, sizeof(buf));
+	 ret = (*callback)(buf, info.attrib, param);
 
-			if (ret != 0){
-				break;
-			}
-			c++;
-		}
-		else{
-			replace_filename(buf, name, info.name, sizeof(buf));
-		}
+	 if (ret != 0)
+	    break;
 
-   }while (al_findnext(&info) == 0);
+	 c++;
+      }
+   } while (al_findnext(&info) == 0);
 
    al_findclose(&info);
 
@@ -1198,8 +1186,6 @@ static void destroy_resource_path_list(void)
  */
 int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ext, AL_CONST char *datafile, AL_CONST char *objectname, AL_CONST char *envvar, AL_CONST char *subdir, int size)
 {
-	//PSV_DEBUG("find_allegro_resource()");
-
    int (*sys_find_resource)(char *, AL_CONST char *, int);
    char rname[128], path[1024], tmp[128];
    char *s;
@@ -1208,35 +1194,35 @@ int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ex
    
    ASSERT(dest);
 
-   
    /* if the resource is a path with no filename, look in that location */
-   if ((resource) && (ugetc(resource)) && (!ugetc(get_filename(resource)))){
+   if ((resource) && (ugetc(resource)) && (!ugetc(get_filename(resource))))
       return find_resource(dest, resource, empty_string, datafile, objectname, subdir, size);
-   }
 
    /* if we have a path+filename, just use it directly */
    if ((resource) && (ustrpbrk(resource, uconvert_ascii("\\/#", tmp)))) {
       if (file_exists(resource, FA_RDONLY | FA_ARCH, NULL)) {
-	     ustrzcpy(dest, size, resource);
-	     /* if the resource is a datafile, try looking inside it */
-	     if ((ustricmp(get_extension(dest), uconvert_ascii("dat", tmp)) == 0) && (objectname)) {
-	        ustrzcat(dest, size, uconvert_ascii("#", tmp));
-	        for (i=0; i<ustrlen(objectname); i++) {
-	           c = ugetat(objectname, i);
-	           if (c == '.')
-		          c = '_';
-	           if (ustrsizez(dest)+ucwidth(c) <= size)
-		          uinsert(dest, ustrlen(dest), c);
-	        }
+	 ustrzcpy(dest, size, resource);
 
-	        if (!file_exists(dest, FA_RDONLY | FA_ARCH, NULL))
-	           return -1;
-	     }
+	 /* if the resource is a datafile, try looking inside it */
+	 if ((ustricmp(get_extension(dest), uconvert_ascii("dat", tmp)) == 0) && (objectname)) {
+	    ustrzcat(dest, size, uconvert_ascii("#", tmp));
 
-	     return 0;
+	    for (i=0; i<ustrlen(objectname); i++) {
+	       c = ugetat(objectname, i);
+	       if (c == '.')
+		  c = '_';
+	       if (ustrsizez(dest)+ucwidth(c) <= size)
+		  uinsert(dest, ustrlen(dest), c);
+	    }
+
+	    if (!file_exists(dest, FA_RDONLY | FA_ARCH, NULL))
+	       return -1;
+	 }
+
+	 return 0;
       }
       else
-	     return -1;
+	 return -1;
    }
 
    /* clean up the resource name, adding any default extension */
@@ -1244,14 +1230,13 @@ int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ex
       ustrzcpy(rname, sizeof(rname), resource);
 
       if (ext) {
-	     s = get_extension(rname);
-	     if (!ugetc(s))
-	        ustrzcat(rname, sizeof(rname), ext);
+	 s = get_extension(rname);
+	 if (!ugetc(s))
+	    ustrzcat(rname, sizeof(rname), ext);
       }
    }
-   else{
+   else
       usetc(rname, 0);
-   }
 
    /* try resource path list */
    while (rp_list_node) {
@@ -1276,7 +1261,7 @@ int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ex
       put_backslash(path);
 
       if (find_resource(dest, path, rname, datafile, objectname, subdir, size) == 0)
-	     return 0; 
+	 return 0; 
    }
 
    /* try any extra environment variable that the parameters say to use */
@@ -1284,11 +1269,11 @@ int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ex
       s = getenv(uconvert_tofilename(envvar, tmp));
 
       if (s) {
-	     do_uconvert(s, U_ASCII, path, U_CURRENT, sizeof(path)-ucwidth(OTHER_PATH_SEPARATOR));
-	     put_backslash(path);
+	 do_uconvert(s, U_ASCII, path, U_CURRENT, sizeof(path)-ucwidth(OTHER_PATH_SEPARATOR));
+	 put_backslash(path);
 
-	     if (find_resource(dest, path, rname, datafile, objectname, subdir, size) == 0)
-	        return 0; 
+	 if (find_resource(dest, path, rname, datafile, objectname, subdir, size) == 0)
+	    return 0; 
       }
    }
 
@@ -1300,24 +1285,24 @@ int find_allegro_resource(char *dest, AL_CONST char *resource, AL_CONST char *ex
 
    if (sys_find_resource) {
       if ((ugetc(rname)) && (sys_find_resource(dest, (char *)rname, size) == 0))
-	     return 0;
+	 return 0;
 
       if ((datafile) && ((ugetc(rname)) || (objectname)) && (sys_find_resource(path, (char *)datafile, sizeof(path)) == 0)) {
-	     if (!ugetc(rname))
-	        ustrzcpy(rname, sizeof(rname), objectname);
+	 if (!ugetc(rname))
+	    ustrzcpy(rname, sizeof(rname), objectname);
 
-	     for (i=0; i<ustrlen(rname); i++) {
-	        if (ugetat(rname, i) == '.')
-	           usetat(rname, i, '_');
-	     }
+	 for (i=0; i<ustrlen(rname); i++) {
+	    if (ugetat(rname, i) == '.')
+	       usetat(rname, i, '_');
+	 }
 
-	     ustrzcat(path, sizeof(path), uconvert_ascii("#", tmp));
-	     ustrzcat(path, sizeof(path), rname);
+	 ustrzcat(path, sizeof(path), uconvert_ascii("#", tmp));
+	 ustrzcat(path, sizeof(path), rname);
 
-	     if (file_exists(path, FA_RDONLY | FA_ARCH, NULL)) {
-	        ustrzcpy(dest, size, path);
-	        return 0;
-	     }
+	 if (file_exists(path, FA_RDONLY | FA_ARCH, NULL)) {
+	    ustrzcpy(dest, size, path);
+	    return 0;
+	 }
       }
    }
 

@@ -17,6 +17,8 @@
 #include <allegro/internal/aintern.h>
 #ifdef ALLEGRO_MACOSX
 #include <OpenGL/glu.h>
+#elif defined PSVITA
+
 #else
 #include <GL/glu.h>
 #endif

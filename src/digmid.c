@@ -23,7 +23,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 
 /* external interface to the Digmid driver */
@@ -38,7 +37,6 @@ static void digmid_set_pitch(int voice, int note, int bend);
 static void digmid_set_pan(int voice, int pan);
 
 static char todo[256][1024];
-
 
 MIDI_DRIVER midi_digmid =
 {
@@ -456,20 +454,16 @@ static PATCH *load_patch(PACKFILE *f, int drum)
  */
 int _digmid_find_patches(char *dir, int dir_size, char *file, int file_size)
 {
-   //PSV_DEBUG("_digmid_find_patches()");
-   //PSV_DEBUG("dir = %s, file = %s", dir, file);
-
    char filename[1024], tmp1[64], tmp2[64], tmp3[64], tmp4[64];
    AL_CONST char *name;
    char *datafile, *objectname, *envvar, *subdir, *s;
 
-   name = get_config_string(uconvert_ascii("Sound", tmp1), uconvert_ascii("patches", tmp2), NULL);
+   name = get_config_string(uconvert_ascii("sound", tmp1), uconvert_ascii("patches", tmp2), NULL);
    datafile = uconvert_ascii("patches.dat", tmp1);
    objectname = uconvert_ascii("default.cfg", tmp2);
    envvar = uconvert_ascii("ULTRADIR", tmp3);
    subdir = uconvert_ascii("midi", tmp4);
 
-  
    if (find_allegro_resource(filename, name, NULL, datafile, objectname, envvar, subdir, sizeof(filename)) != 0)
       return FALSE;
 
@@ -479,8 +473,8 @@ int _digmid_find_patches(char *dir, int dir_size, char *file, int file_size)
          s = get_filename(filename);
       else
          s += ustrlen("#");
-
       ustrzcpy(file, file_size, s);
+
       usetc(s, 0);
       ustrzcpy(dir, dir_size, filename);
    }
@@ -525,9 +519,6 @@ static int parse_string(char *buf, char *argv[])
  */
 static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
 {
-	//PSV_DEBUG("digmid_load_patches()");
-	//PSV_DEBUG("patches = %s", patches);
-
    PACKFILE *f;
    char dir[1024], file[1024], buf[1024], filename[1024];
    //char todo[256][1024]; // PSVITA: This causes stack overflow on Vita
@@ -541,10 +532,8 @@ static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
    int type, size;
    int i, j, c;
 
-   if (!_digmid_find_patches(dir, sizeof(dir), file, sizeof(file))){
-		PSV_DEBUG("_digmid_find_patches() failed!!!");
-		return -1;
-   }
+   if (!_digmid_find_patches(dir, sizeof(dir), file, sizeof(file)))
+      return -1;
 
    for (i=0; i<256; i++)
       usetc(todo[i], 0);
@@ -553,10 +542,8 @@ static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
    ustrzcat(buf, sizeof(buf), file);
 
    f = pack_fopen(buf, F_READ);
-   if (!f){
-		PSV_DEBUG("pack_fopen() failed!!!");
-		return -1;
-   }
+   if (!f)
+      return -1;
 
    while (pack_fgets(buf, sizeof(buf), f) != 0) {
       argc = parse_string(buf, argv);
@@ -587,7 +574,7 @@ static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
 	       patchnum = ustrtol(argv[0], NULL, 10);
 
 	       if (!drum_mode)
-				patchnum--;
+		  patchnum--;
 
 	       if ((patchnum >= 0) && (patchnum < 128) &&
 		   (((drum_mode) && (drums[patchnum])) ||
@@ -621,17 +608,14 @@ static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
 	 usetat(dir, -1, 0);
 
       f = pack_fopen(dir, F_READ_PACKED);
-      if (!f){
-			PSV_DEBUG("(2)pack_fopen() failed!!!");
-			return -1;
-	  }
+      if (!f)
+	 return -1;
 
       if (((ugetc(dir) == '#') && (ustrlen(dir) == 1)) || (!ustrchr(dir, '#'))) {
 	 type = pack_mgetl(f);
 	 if (type != DAT_MAGIC) {
-		 PSV_DEBUG("pack_mgetl() failed!!!");
 	    pack_fclose(f);
-		return -1;
+	    return -1;
 	 }
       }
 
@@ -723,10 +707,6 @@ static int digmid_load_patches(AL_CONST char *patches, AL_CONST char *drums)
       }
    }
 
-	//return -1;
-
-   //PSV_DEBUG("digmid_load_patches() - end");
-
    return 0;
 }
 
@@ -777,14 +757,12 @@ END_OF_STATIC_FUNCTION(digmid_freq);
  */
 static void digmid_trigger(int inst, int snum, int note, int bend, int vol, int pan)
 {
-	//PSV_DEBUG("digmid_trigger()");
    int freq, voice;
    DIGMID_VOICE *info;
    PATCH_EXTRA *e;
    SAMPLE *s;
 
    voice = _midi_allocate_voice(-1, -1);
-  
    if (voice < 0)
       return;
 
@@ -795,9 +773,8 @@ static void digmid_trigger(int inst, int snum, int note, int bend, int vol, int 
       pan = e->pan;
       freq = s->freq;
    }
-   else{
+   else
       freq = digmid_freq(inst, s, e, note, bend);
-   }
 
    /* store note information for later use */
    info = &digmid_voice[voice - midi_digmid.basevoice];
@@ -813,9 +790,8 @@ static void digmid_trigger(int inst, int snum, int note, int bend, int vol, int 
    voice_set_frequency(voice, freq);
    voice_set_pan(voice, pan);
 
-   if (e->sustain_level < 255){
+   if (e->sustain_level < 255)
       voice_ramp_volume(voice, e->decay_time, e->sustain_level*vol/255);
-   }
 
    voice_start(voice);
 }
@@ -834,54 +810,52 @@ END_OF_STATIC_FUNCTION(digmid_trigger);
  */
 static void digmid_key_on(int inst, int note, int bend, int vol, int pan)
 {
-	//PSV_DEBUG("digmid_key_on()");
-	PATCH_EXTRA *e;
-	long freq;
-	int best, best_diff;
-	int diff;
-	int i, c;
+   PATCH_EXTRA *e;
+   long freq;
+   int best, best_diff;
+   int diff;
+   int i, c;
 
-	/* quit if instrument is not available */
-	if ((!patch[inst]) || (patch[inst]->samples < 1))
-		return;
+   /* quit if instrument is not available */
+   if ((!patch[inst]) || (patch[inst]->samples < 1))
+      return;
 
-	/* adjust volume and pan ranges */
-	vol *= 2;
-	pan *= 2;
+   /* adjust volume and pan ranges */
+   vol *= 2;
+   pan *= 2;
 
-	if (patch[inst]->samples == 1) {
-		/* only one sample to choose from */
-		digmid_trigger(inst, 0, note, bend, vol, pan);
-	}
-	else {
-		/* find the sample(s) with best frequency range */
-		best = -1;
-		best_diff = INT_MAX;
-		c = 0;
+   if (patch[inst]->samples == 1) {
+      /* only one sample to choose from */
+      digmid_trigger(inst, 0, note, bend, vol, pan);
+   }
+   else {
+      /* find the sample(s) with best frequency range */
+      best = -1;
+      best_diff = INT_MAX;
+      c = 0;
 
-		for (i=0; i<patch[inst]->samples; i++) {
-			freq = ftbl[note];
-			e = patch[inst]->extra[i];
+      for (i=0; i<patch[inst]->samples; i++) {
+	 freq = ftbl[note];
+	 e = patch[inst]->extra[i];
 
-			if ((freq >= e->low_note) && (freq <= e->high_note)) {
-				digmid_trigger(inst, i, note, bend, vol, pan);
-				c++;
-				if (c > 4)
-					break;
-			}
-			else {
-				diff = MIN(ABS(freq - e->low_note), ABS(freq - e->high_note));
-				if (diff < best_diff) {
-				   best_diff = diff;
-				   best = i;
-				}
-			}
-		}
+	 if ((freq >= e->low_note) && (freq <= e->high_note)) {
+	    digmid_trigger(inst, i, note, bend, vol, pan);
+	    c++;
+	    if (c > 4)
+	       break;
+	 }
+	 else {
+	    diff = MIN(ABS(freq - e->low_note), ABS(freq - e->high_note));
+	    if (diff < best_diff) {
+	       best_diff = diff;
+	       best = i;
+	    }
+	 }
+      }
 
-		if ((c <= 0) && (best >= 0)){
-			digmid_trigger(inst, best, note, bend, vol, pan);
-		}
-	}
+      if ((c <= 0) && (best >= 0))
+	 digmid_trigger(inst, best, note, bend, vol, pan);
+   }
 }
 
 END_OF_STATIC_FUNCTION(digmid_key_on);
@@ -999,7 +973,6 @@ END_OF_STATIC_FUNCTION(digmid_set_pan);
  */
 static int digmid_detect(int input)
 {
-	//PSV_DEBUG("digmid_detect()");
    if (input)
       return FALSE;
 

@@ -1,6 +1,9 @@
 /* This code is (C) AllegroGL contributors, and double licensed under
  * the GPL and zlib licenses. See gpl.txt or zlib.txt for details.
  */
+
+#ifndef PSVITA
+
 #include <string.h>
 #include <allegro.h>
 #include <allegro/internal/aintern.h>
@@ -1838,3 +1841,5 @@ static struct allegro_gl_driver allegro_gl_win = {
 	flip, gl_on, gl_off, NULL
 };
 
+
+#endif

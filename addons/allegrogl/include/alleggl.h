@@ -58,14 +58,24 @@ typedef __int64 INT64;
 #define GL_GLEXT_PROTOTYPES
 #endif
 
+//#elif defined PSVITA
+//#include <vitaGL.h>
+//#include <GL/gl.h>
+//#include <GLES2/gl2.h>
+//#include <GLES2/gl2ext.h>
+
 #else /* ALLEGRO_MACOSX */
 
 /* HACK: Prevent both Mesa and SGI's broken headers from screwing us */
 #define __glext_h_
+#define __gl_glext_h_
 #define __glxext_h_
+#define __glx_glxext_h_
 #include <GL/gl.h>
 #undef  __glext_h_
+#undef  __gl_glext_h_
 #undef  __glxext_h_
+#undef  __glx_glxext_h_
 
 #endif /* ALLEGRO_MACOSX */
 
@@ -455,6 +465,11 @@ AGL_FUNC(void, allegro_gl_load_settings, (void));
   
 #elif defined ALLEGRO_MACOSX
   /* MacOS X always supports fullscreen */
+  #define GFX_OPENGL_WINDOWED               AL_ID('O','G','L','W')
+  #define GFX_OPENGL_FULLSCREEN             AL_ID('O','G','L','F')
+
+#elif defined PSVITA
+  /* PSVITA always supports fullscreen */
   #define GFX_OPENGL_WINDOWED               AL_ID('O','G','L','W')
   #define GFX_OPENGL_FULLSCREEN             AL_ID('O','G','L','F')
 

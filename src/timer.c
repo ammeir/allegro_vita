@@ -22,7 +22,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 TIMER_DRIVER *timer_driver = NULL;        /* the active driver */
 
@@ -72,77 +71,74 @@ static volatile long timer_delay = 0;     /* lost interrupt rollover */
  */
 long _handle_timer_tick(int interval)
 {
-	long new_delay = 0x8000;
-	long d;
-	int i;
+   long new_delay = 0x8000;
+   long d;
+   int i;
 
-	timer_delay += interval;
+   timer_delay += interval;
 
 #ifdef ALLEGRO_MULTITHREADED
-	system_driver->lock_mutex(timer_mutex);
+   system_driver->lock_mutex(timer_mutex);
 #else
-	/* reentrant interrupt? */
-	if (timer_semaphore){
-		return 0x2000;
-	}
+   /* reentrant interrupt? */
+   if (timer_semaphore)
+      return 0x2000;
 
-	timer_semaphore = TRUE;
+   timer_semaphore = TRUE;
 #endif
 
-	d = timer_delay;
+   d = timer_delay;
 
-	/* deal with retrace synchronisation */
-	vsync_counter -= d; 
+   /* deal with retrace synchronisation */
+   vsync_counter -= d; 
 
-	while (vsync_counter <= 0) {
-		vsync_counter += _vsync_speed;
-		retrace_count++;
-		if (retrace_proc)
-			retrace_proc();
-	}
+   while (vsync_counter <= 0) {
+      vsync_counter += _vsync_speed;
+      retrace_count++;
+      if (retrace_proc)
+	 retrace_proc();
+   }
 
-	/* process the user callbacks */
-	for (i=0; i<MAX_TIMERS; i++) { 
-		
-		if (((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) && (_timer_queue[i].speed > 0)) {
+   /* process the user callbacks */
+   for (i=0; i<MAX_TIMERS; i++) { 
+      if (((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) &&
+	  (_timer_queue[i].speed > 0)) {
 
-			_timer_queue[i].counter -= d;
+	 _timer_queue[i].counter -= d;
 
-			while ((_timer_queue[i].counter <= 0) && 
-				((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) && 
-				(_timer_queue[i].speed > 0)) {
-			
-				_timer_queue[i].counter += _timer_queue[i].speed;
-				if (_timer_queue[i].param_proc)
-				   _timer_queue[i].param_proc(_timer_queue[i].param);
-				else
-				   _timer_queue[i].proc();
-			}
+	 while ((_timer_queue[i].counter <= 0) && 
+		((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) && 
+		(_timer_queue[i].speed > 0)) {
+	    _timer_queue[i].counter += _timer_queue[i].speed;
+	    if (_timer_queue[i].param_proc)
+	       _timer_queue[i].param_proc(_timer_queue[i].param);
+	    else
+	       _timer_queue[i].proc();
+	 }
 
-			if ((_timer_queue[i].counter > 0) && 
-				((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) && 
-				(_timer_queue[i].counter < new_delay)) {
+	 if ((_timer_queue[i].counter > 0) && 
+	     ((_timer_queue[i].proc) || (_timer_queue[i].param_proc)) && 
+	     (_timer_queue[i].counter < new_delay)) {
+	    new_delay = _timer_queue[i].counter;
+	 }
+      }
+   }
 
-				new_delay = _timer_queue[i].counter;
-			}
-		}
-	}
-
-	timer_delay -= d;
+   timer_delay -= d;
 
 #ifdef ALLEGRO_MULTITHREADED
-	system_driver->unlock_mutex(timer_mutex);
+   system_driver->unlock_mutex(timer_mutex);
 #else
-	timer_semaphore = FALSE;
+   timer_semaphore = FALSE;
 #endif
 
 #ifdef ALLEGRO_WINDOWS
-	/* fudge factor to prevent interrupts from coming too close to each other */
-	if (new_delay < MSEC_TO_TIMER(1))
-		new_delay = MSEC_TO_TIMER(1);
+   /* fudge factor to prevent interrupts from coming too close to each other */
+   if (new_delay < MSEC_TO_TIMER(1))
+      new_delay = MSEC_TO_TIMER(1);
 #endif
 
-	return new_delay;
+   return new_delay;
 }
 
 END_OF_FUNCTION(_handle_timer_tick);
@@ -166,8 +162,6 @@ END_OF_STATIC_FUNCTION(rest_int);
  */
 void rest_callback(unsigned int time, void (*callback)(void))
 {
-	//PSV_DEBUG("rest_callback()");
-
    if (!time) {
       ASSERT(system_driver);
       if (system_driver->yield_timeslice)
@@ -176,25 +170,24 @@ void rest_callback(unsigned int time, void (*callback)(void))
    }
    if (timer_driver) {
       if (timer_driver->rest) {
-		  timer_driver->rest(time, callback);
+	 timer_driver->rest(time, callback);
       }
       else {
-		rest_count = time;
+	 rest_count = time;
 
-		 if (install_int(rest_int, 1) < 0){
-			return;
-		 }
+	 if (install_int(rest_int, 1) < 0)
+	    return;
 
-		 do {
-			if (callback)
-			   callback();
-			else
-			   rest(0);
+	 do {
+	    if (callback)
+	       callback();
+	    else
+	       rest(0);
 
-		 } while (rest_count > 0);
+	 } while (rest_count > 0);
 
-		 remove_int(rest_int);
-     }
+	 remove_int(rest_int);
+      }
    }
    else {
       time = clock() + MIN(time * CLOCKS_PER_SEC / 1000, 2);
@@ -320,15 +313,11 @@ END_OF_STATIC_FUNCTION(find_empty_timer_slot);
  */
 static int install_timer_int(void *proc, void *param, long speed, int param_used)
 {
-	//PSV_DEBUG("install_timer_int()");
-
    int x;
 
    if (!timer_driver) {                   /* make sure we are installed */
-      if (install_timer() != 0){
-		  PSV_DEBUG("install_timer() failed!");
-		  return -1;
-	  }
+      if (install_timer() != 0)
+	 return -1;
    }
 
    if (param_used) {
@@ -438,8 +427,6 @@ END_OF_FUNCTION(install_param_int_ex);
  */
 static void remove_timer_int(void *proc, void *param, int param_used)
 {
-	//PSV_DEBUG("remove_timer_int()");
-
    int x;
 
    if (param_used) {

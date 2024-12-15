@@ -90,7 +90,6 @@ int _al_file_isok(AL_CONST char *filename)
  */
 uint64_t _al_file_size_ex(AL_CONST char *filename)
 {
-	//PSV_DEBUG("PSVITA: _al_file_size_ex()");
     struct stat s;
 	char tmp[1024];
 
@@ -108,7 +107,6 @@ uint64_t _al_file_size_ex(AL_CONST char *filename)
  */
 time_t _al_file_time(AL_CONST char *filename)
 {
-	//PSV_DEBUG("PSVITA: _al_file_time()");
     struct stat s;
 	char tmp[1024];
 
@@ -122,8 +120,6 @@ time_t _al_file_time(AL_CONST char *filename)
 
 int _al_drive_exists(int drive)
 { 
-	//PSV_DEBUG("PSVITA: _al_drive_exists(), drive = %d", drive);
-
 	// Support two drives: ux0 (drive 0) and uma0 (drive 1).
 	if (drive == 0 || drive == 1)
 		return 1;
@@ -136,7 +132,6 @@ int _al_drive_exists(int drive)
  */ 
 int _al_getdrive()
 {
-	//PSV_DEBUG("_al_getdrive()");
 	// TODO: Add uma0 support.
 	return 0;
 }
@@ -146,8 +141,6 @@ int _al_getdrive()
  */
 void _al_getdcwd(int drive, char *buf, int size)
 {
-	//PSV_DEBUG("PSVITA: _al_getdcwd(), drive = %d", drive);
-
 	if (drive == 0){
 		char* app_dir = psv_get_app_dir();
 
@@ -169,8 +162,6 @@ void _al_getdcwd(int drive, char *buf, int size)
  */
 int al_findfirst(AL_CONST char *pattern, struct al_ffblk *info, int attrib)
 {
-   //PSV_DEBUG("PSVITA: al_findfirst()");
-   //PSV_DEBUG("pattern = %s", pattern);
    struct FF_DATA *ff_data;
    struct stat s;
    int actual_attrib;
@@ -252,7 +243,6 @@ int al_findfirst(AL_CONST char *pattern, struct al_ffblk *info, int attrib)
  */
 int al_findnext(struct al_ffblk *info)
 {
-   //PSV_DEBUG("PSVITA: al_findnext()");
    char tempname[FF_MAXPATHLEN];
    char filename[FF_MAXPATHLEN];
    int attrib;
@@ -316,7 +306,6 @@ int al_findnext(struct al_ffblk *info)
  */
 void al_findclose(struct al_ffblk *info)
 {
-	//PSV_DEBUG("PSVITA: al_findclose()");
    struct FF_DATA *ff_data = (struct FF_DATA *) info->ff_data;
 
    if (ff_data) {

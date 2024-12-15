@@ -18,7 +18,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 
 /* thedmd: Keyboard driver hit GCC bug 43614.
@@ -151,6 +150,7 @@ static volatile KEY_BUFFER _key_buffer;
  */
 static INLINE void add_key(volatile KEY_BUFFER *buffer, int key, int scancode)
 {
+   //PSV_DEBUG("add_key (), key = %d, scancode = %d", key, scancode);
    int c, d;
 
    if (buffer == &key_buffer) {
@@ -163,13 +163,13 @@ static INLINE void add_key(volatile KEY_BUFFER *buffer, int key, int scancode)
 		c = ((key <= 0xFF) ? key : '^') | (scancode << 8);
 		d = keyboard_callback(c);
 
-		 if (!d)
+		if (!d)
 			return;
 
-		 if (d != c) {
+		if (d != c) {
 			key = (d & 0xFF);
 			scancode = (d >> 8);
-		 }
+		}
       }
    }
 
@@ -442,36 +442,37 @@ static INLINE void update_shifts(void)
  */
 void _handle_key_press(int keycode, int scancode)
 {
-   if ((keyboard_driver->poll) || (!keyboard_polled)) {
-      /* process immediately */
-      if (scancode > 0) {
-		if ((!repeat_delay) && (key[scancode]))
-			return;
+	//PSV_DEBUG("_handle_key_press(), keycode = %d, scancode = %d", keycode, scancode);
+	if ((keyboard_driver->poll) || (!keyboard_polled)) {
+		/* process immediately */
+		if (scancode > 0) {
+			if ((!repeat_delay) && (key[scancode]))
+				return;
 
-		key[scancode] = -1;
+			key[scancode] = -1;
 
-		if (keyboard_lowlevel_callback)
-			keyboard_lowlevel_callback(scancode);
-      }
+			if (keyboard_lowlevel_callback)
+				keyboard_lowlevel_callback(scancode);
+		}
 
-      /* e.g. for F1, keycode=0, and scancode=KEY_F1 */
-      if (keycode >= 0)
-		add_key(&key_buffer, keycode, scancode);
+		/* e.g. for F1, keycode=0, and scancode=KEY_F1 */
+		if (keycode >= 0)
+			add_key(&key_buffer, keycode, scancode);
 
-      update_shifts();
-   }
-   else {
-      /* deal with this during the next poll_keyboard() */
-      if (scancode > 0) {
-		 if ((!repeat_delay) && (_key[scancode]))
-			return;
+		update_shifts();
+	}
+	else {
+		/* deal with this during the next poll_keyboard() */
+		if (scancode > 0) {
+			if ((!repeat_delay) && (_key[scancode]))
+				return;
 
-		 _key[scancode] = -1;
-      }
+			_key[scancode] = -1;
+		}
 
-      if (keycode >= 0)
-		add_key(&_key_buffer, keycode, scancode);
-   }
+		if (keycode >= 0)
+			add_key(&_key_buffer, keycode, scancode);
+	}
 
    /* autorepeat? */
    if ((keyboard_driver->autorepeat) && (repeat_delay) &&
@@ -505,7 +506,7 @@ void _handle_key_release(int scancode)
       key[scancode] = 0;
 
       if (keyboard_lowlevel_callback)
-		keyboard_lowlevel_callback(scancode | 0x80);
+	 keyboard_lowlevel_callback(scancode | 0x80);
 
       update_shifts();
    }
@@ -532,7 +533,6 @@ END_OF_FUNCTION(_handle_key_release);
 int poll_keyboard(void) GCC_440_BUG_WORKAROUND;
 int poll_keyboard(void)
 {
-	//PSV_DEBUG("poll_keyboard()");
    int i;
 
    if (!keyboard_driver)
@@ -545,23 +545,23 @@ int poll_keyboard(void)
    else if (!keyboard_polled) {
       /* switch into polling emulation mode */
       for (i=0; i<KEY_MAX; i++)
-		_key[i] = key[i];
+	 _key[i] = key[i];
 
       keyboard_polled = TRUE;
    }
    else {
       /* update the real keyboard variables with stored input */
       for (i=0; i<KEY_MAX; i++) {
-		if (key[i] != _key[i]) {
-			key[i] = _key[i];
+	 if (key[i] != _key[i]) {
+	    key[i] = _key[i];
 
-			if (keyboard_lowlevel_callback)
-			   keyboard_lowlevel_callback((key[i]) ? i : (i | 0x80));
-		}
+	    if (keyboard_lowlevel_callback)
+	       keyboard_lowlevel_callback((key[i]) ? i : (i | 0x80));
+	 }
       }
 
       while (_key_buffer.start != _key_buffer.end) {
-		add_key(&key_buffer, _key_buffer.key[_key_buffer.start],
+	 add_key(&key_buffer, _key_buffer.key[_key_buffer.start],
 			      _key_buffer.scancode[_key_buffer.start]);
 
 	 if (_key_buffer.start < KEY_BUFFER_SIZE-1)

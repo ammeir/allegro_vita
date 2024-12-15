@@ -27,7 +27,6 @@
 _DRIVER_INFO _system_driver_list[] =
 {
    { SYSTEM_PSV,              &system_psv,              TRUE  },
-   { SYSTEM_NONE,             &system_none,             FALSE },
    { 0,                       NULL,                     0     }
 };
 
@@ -66,11 +65,11 @@ _DRIVER_INFO _digi_driver_list[] =
    { 0,                        NULL,                    0     }
 };
 
-
-BEGIN_MIDI_DRIVER_LIST
-MIDI_DRIVER_DIGMID
-END_MIDI_DRIVER_LIST
-
+_DRIVER_INFO _midi_driver_list[] =
+{
+   {MIDI_DIGMID,               &midi_digmid,            TRUE},
+   {0,                         NULL,                    0   }
+}; 
 
 BEGIN_JOYSTICK_DRIVER_LIST
 {   JOYSTICK_PSV,              &joystick_psv,           TRUE  },

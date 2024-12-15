@@ -20,17 +20,30 @@
 #define AINTPSV_H
 
 
-/* Extra bitmap info. */
-#define BMP_EXTRA(bmp)         ((BMP_EXTRA_INFO *)((bmp)->extra))
-
 typedef struct BMP_EXTRA_INFO
 {
-   int pitch;
+   //int pitch;
    /* For video bitmaps. */
    int size;
-   uintptr_t hw_addr;
-   uintptr_t ptr_tex;
+   int stride;
+   void* hw_tex;
 } BMP_EXTRA_INFO;
+
+//typedef struct FIFO_ELEM
+//{
+//	int type;
+//	BITMAP* src; 
+//	BITMAP* dest;
+//	int s_x;
+//	int s_y;
+//	int d_x; 
+//	int d_y; 
+//	int w;
+//	int h;
+//} FIFO_ELEM;
+
+/* Extra bitmap info. */
+#define BMP_EXTRA(bmp)         ((BMP_EXTRA_INFO *)((bmp)->extra))
 
 #define ALIGN_TO(v,n)          ((v + n-1) & ~(n-1))
 

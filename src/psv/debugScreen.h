@@ -90,6 +90,7 @@ static size_t psvDebugScreenEscape(const unsigned char *str) {
 		}
 	return 0;
 }
+
 int psvDebugScreenInit() {
 #ifdef NO_psvDebugScreenInit
 	return 0;/* avoid linking non-initializer (prx) with sceDisplay/sceMemory */

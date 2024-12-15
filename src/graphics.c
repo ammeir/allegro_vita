@@ -302,7 +302,6 @@ void destroy_gfx_mode_list(GFX_MODE_LIST *gfx_mode_list)
  */
 void set_color_depth(int depth)
 {
-	PSV_DEBUG("set_color_depth(), depth = %d", depth);
    _color_depth = depth;
 
    switch (depth) {
@@ -479,11 +478,14 @@ static void shutdown_gfx(void)
  */
 static int gfx_driver_is_valid(GFX_DRIVER *drv, int flags)
 {
-   if ((flags & GFX_DRIVER_FULLSCREEN_FLAG) && drv->windowed)
+   //PSV_DEBUG("gfx_driver_is_valid()");
+   if ((flags & GFX_DRIVER_FULLSCREEN_FLAG) && drv->windowed){
       return FALSE;
+   }
 
-   if ((flags & GFX_DRIVER_WINDOWED_FLAG) && !drv->windowed)
+   if ((flags & GFX_DRIVER_WINDOWED_FLAG) && !drv->windowed){
       return FALSE;
+   }
 
    return TRUE;
 }
@@ -602,7 +604,9 @@ int set_gfx_mode(int card, int w, int h, int v_w, int v_h)
 {
    TRACE(PREFIX_I "Called set_gfx_mode(%d, %d, %d, %d, %d).\n",
 	 card, w, h, v_w, v_h);
-         
+       
+   //PSV_DEBUG("Called set_gfx_mode(%d, %d, %d, %d, %d).\n",card, w, h, v_w, v_h);
+
    /* TODO: shouldn't this be incremented only IF successful? */
    _gfx_mode_set_count++;
 
@@ -624,9 +628,12 @@ int set_gfx_mode(int card, int w, int h, int v_w, int v_h)
 static int _set_gfx_mode(int card, int w, int h, int v_w, int v_h, int allow_config)
 {
 	TRACE(PREFIX_I "_set_gfx_mode()");
+	//PSV_DEBUG("_set_gfx_mode()");
 
 	TRACE(PREFIX_I "card = %d, w=%d, h=%d, v_w=%d, v_h=%d, allow_config=%d\n",
 		card, w, h, v_w, v_h, allow_config);
+	//PSV_DEBUG("card = %d, w=%d, h=%d, v_w=%d, v_h=%d, allow_config=%d\n",
+	//	card, w, h, v_w, v_h, allow_config);
 
    _DRIVER_INFO *driver_list;
    GFX_DRIVER *drv;
@@ -749,7 +756,6 @@ static int _set_gfx_mode(int card, int w, int h, int v_w, int v_h, int allow_con
 
 		/* first try the config variables */
 		if (allow_config) {
-		
 			/* try the gfx_card variable if GFX_AUTODETECT or GFX_AUTODETECT_FULLSCREEN was selected */
 			if (!(flags & GFX_DRIVER_WINDOWED_FLAG))
 				found = get_config_gfx_driver(uconvert_ascii("gfx_card", tmp1), w, h, v_w, v_h, flags, driver_list);
@@ -762,10 +768,10 @@ static int _set_gfx_mode(int card, int w, int h, int v_w, int v_h, int allow_con
 		/* go through the list of autodetected drivers if none was previously found */
 		if (!found) {
 			TRACE(PREFIX_I "Autodetecting graphic driver.\n");
+			
 			for (c=0; driver_list[c].driver; c++) {
 				if (driver_list[c].autodetect) {
 					drv = driver_list[c].driver;
-
 					if (gfx_driver_is_valid(drv, flags)) {
 						screen = init_gfx_driver(drv, w, h, v_w, v_h);
 						if (screen)
@@ -795,6 +801,7 @@ static int _set_gfx_mode(int card, int w, int h, int v_w, int v_h, int allow_con
 			ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Unable to find a suitable graphics driver"));
 
 		TRACE(PREFIX_E "Failed setting graphic driver %d.\n", card);
+		//PSV_DEBUG("Failed setting graphic driver %d", card);
 		return -1;
     }
 
@@ -872,6 +879,7 @@ static int _set_gfx_mode(int card, int w, int h, int v_w, int v_h, int allow_con
  */
 static int _set_gfx_mode_safe(int card, int w, int h, int v_w, int v_h)
 {
+   PSV_DEBUG("_set_gfx_mode_safe()");
    char buf[ALLEGRO_ERROR_SIZE], tmp1[64];
    struct GFX_MODE mode;
    int ret, driver;
@@ -1439,66 +1447,66 @@ void destroy_bitmap(BITMAP *bitmap)
 
    if (bitmap) {
       if (is_video_bitmap(bitmap)) {
-	 /* special case for getting rid of video memory bitmaps */
-	 ASSERT(!_dispsw_status);
+		 /* special case for getting rid of video memory bitmaps */
+		 ASSERT(!_dispsw_status);
 
-	 prev = NULL;
-	 pos = vram_bitmap_list;
+		 prev = NULL;
+		 pos = vram_bitmap_list;
 
-	 while (pos) {
-	    if (pos->bmp == bitmap) {
-	       if (prev)
-		  prev->next_y = pos->next_y;
-	       else
-		  vram_bitmap_list = pos->next_y;
+		 while (pos) {
+			if (pos->bmp == bitmap) {
+				if (prev)
+					prev->next_y = pos->next_y;
+				else
+					vram_bitmap_list = pos->next_y;
 
-	       if (pos->x < 0) {
-		  /* the driver is in charge of this object */
-		  gfx_driver->destroy_video_bitmap(bitmap);
-		  _AL_FREE(pos);
-		  return;
-	       } 
+				if (pos->x < 0) {
+					/* the driver is in charge of this object */
+					gfx_driver->destroy_video_bitmap(bitmap);
+					_AL_FREE(pos);
+					return;
+				} 
 
-	       /* Update cached bitmap size using worst case scenario:
-		* the bitmap lies between two holes whose size is the cached
-		* size on each axis respectively.
-		*/
-	       failed_bitmap_w = failed_bitmap_w * 2 + ((bitmap->w + 15) & ~15);
-	       if (failed_bitmap_w > BMP_MAX_SIZE)
-		  failed_bitmap_w = BMP_MAX_SIZE;
+			   /* Update cached bitmap size using worst case scenario:
+				* the bitmap lies between two holes whose size is the cached
+				* size on each axis respectively.
+				*/
+				failed_bitmap_w = failed_bitmap_w * 2 + ((bitmap->w + 15) & ~15);
+				if (failed_bitmap_w > BMP_MAX_SIZE)
+					failed_bitmap_w = BMP_MAX_SIZE;
 
-	       failed_bitmap_h = failed_bitmap_h * 2 + bitmap->h;
-	       if (failed_bitmap_h > BMP_MAX_SIZE)
-		  failed_bitmap_h = BMP_MAX_SIZE;
+				failed_bitmap_h = failed_bitmap_h * 2 + bitmap->h;
+				if (failed_bitmap_h > BMP_MAX_SIZE)
+					failed_bitmap_h = BMP_MAX_SIZE;
 
-	       _AL_FREE(pos);
-	       break;
-	    }
+				_AL_FREE(pos);
+				break;
+			}
 
-	    prev = pos;
-	    pos = pos->next_y;
-	 }
+			prev = pos;
+			pos = pos->next_y;
+		} // while
 
-	 _unregister_switch_bitmap(bitmap);
+		_unregister_switch_bitmap(bitmap);
       }
       else if (is_system_bitmap(bitmap)) {
-	 /* special case for getting rid of system memory bitmaps */
-	 ASSERT(gfx_driver != NULL);
+		/* special case for getting rid of system memory bitmaps */
+		ASSERT(gfx_driver != NULL);
 
-	 if (gfx_driver->destroy_system_bitmap) {
-	    gfx_driver->destroy_system_bitmap(bitmap);
-	    return;
-	 }
+		if (gfx_driver->destroy_system_bitmap) {
+			gfx_driver->destroy_system_bitmap(bitmap);
+			return;
+		}
       }
 
       /* normal memory or sub-bitmap destruction */
       if (system_driver->destroy_bitmap) {
-	 if (system_driver->destroy_bitmap(bitmap))
-	    return;
+		if (system_driver->destroy_bitmap(bitmap))
+			return;
       }
-
+	  
       if (bitmap->dat)
-	 _AL_FREE(bitmap->dat);
+		_AL_FREE(bitmap->dat);
 
       _AL_FREE(bitmap);
    }

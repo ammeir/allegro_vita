@@ -22,7 +22,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 
 
@@ -1439,7 +1438,6 @@ END_OF_FUNCTION(deallocate_voice);
  */
 void reallocate_voice(int voice, AL_CONST SAMPLE *spl)
 {
-	//PSV_DEBUG("reallocate_voice()");
    int phys;
    ASSERT(spl);
    ASSERT(voice >= 0 && voice < VIRTUAL_VOICES);

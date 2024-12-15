@@ -36,7 +36,6 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
 
 
 #if (DEVICE_SEPARATOR != 0) && (DEVICE_SEPARATOR != '\0')
@@ -189,14 +188,12 @@ static int get_x_drive(int index)
  */
 static char *fs_dlist_getter(int index, int *list_size)
 {
-	//PSV_DEBUG("fs_dlist_getter()");
-	//PSV_DEBUG("index = %d", index);
    static char d[8];
    int pos, c;
 
    if (index < 0) {
       if (list_size)
-		*list_size = count_disks();
+	 *list_size = count_disks();
       return NULL;
    }
 
@@ -238,7 +235,6 @@ static char *fs_dlist_getter(int index, int *list_size)
  */
 static int fs_dlist_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("fs_dlist_proc()");
    char *s = file_selector[FS_EDIT].dp;
    int ret, i, temp;
 
@@ -328,8 +324,6 @@ static int fs_dlist_proc(int msg, DIALOG *d, int c)
  */
 static int fs_edit_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("fs_edit_proc()");
-	//PSV_DEBUG("file_selector[FS_EDIT].dp = %s", d->dp);
    char *s = d->dp;
    int size = (d->d1 + 1) * uwidth_max(U_CURRENT); /* of s (in bytes) */
    int list_size;
@@ -345,24 +339,22 @@ static int fs_edit_proc(int msg, DIALOG *d, int c)
 
    if (msg == MSG_KEY) {
       if ((!ugetc(s)) || (ugetat(s, -1) == DEVICE_SEPARATOR))
-		ustrzcat(s, size, uconvert_ascii("./", tmp));
+	 ustrzcat(s, size, uconvert_ascii("./", tmp));
 
       canonicalize_filename(b, s, sizeof(b));
       ustrzcpy(s, size - ucwidth(OTHER_PATH_SEPARATOR), b);
 
       ch = ugetat(s, -1);
       if ((ch != '/') && (ch != OTHER_PATH_SEPARATOR)) {
-		if (file_exists(s, FA_RDONLY | FA_HIDDEN | FA_DIREC, &attr)) {
-			if (attr & FA_DIREC){
+	 if (file_exists(s, FA_RDONLY | FA_HIDDEN | FA_DIREC, &attr)) {
+	    if (attr & FA_DIREC)
                put_backslash(s);
-			}else{
-				return D_CLOSE;
-			}
-		}
-		else{
-			return D_CLOSE;
-		}
-     }
+	    else
+	       return D_CLOSE;
+	 }
+	 else
+	    return D_CLOSE;
+      }
 
       object_message(file_selector+FS_FILES, MSG_START, 0);
       /* did we `cd ..' ? */
@@ -469,35 +461,31 @@ static int ustrfilecmp(AL_CONST char *s1, AL_CONST char *s2)
  */
 static int fs_flist_putter(AL_CONST char *str, int attrib, void *check_attrib)
 {
-	//PSV_DEBUG("fs_flist_putter()");
-	//PSV_DEBUG("str = %s", str);
-
    char *s, *ext, *name;
    int c, c2;
 
    s = get_filename(str);
-
    fix_filename_case(s);
 
    if (!(attrib & FA_DIREC)) {
       /* Check if file extension matches. */
       if (fext_p) {
-	     ext = get_extension(s);
-	     for (c=0; c<fext_size; c++) {
-	        if (ustricmp(ext, fext_p[c]) == 0)
-	        goto Next;
-	     }
-	     return 0;
+	 ext = get_extension(s);
+	 for (c=0; c<fext_size; c++) {
+	    if (ustricmp(ext, fext_p[c]) == 0)
+	       goto Next;
+	 }
+	 return 0;
       }
 
     Next:
       /* Check if file attributes match. */
       if (check_attrib) {
-	     for (c=0; c<ATTRB_MAX; c++) {
-	        if ((attrb_state[c] == ATTRB_SET) && (!(attrib & attrb_flag[c])))
-	           return 0;
-	        if ((attrb_state[c] == ATTRB_UNSET) && (attrib & attrb_flag[c]))
-	           return 0;
+	 for (c=0; c<ATTRB_MAX; c++) {
+	    if ((attrb_state[c] == ATTRB_SET) && (!(attrib & attrb_flag[c])))
+	       return 0;
+	    if ((attrb_state[c] == ATTRB_UNSET) && (attrib & attrb_flag[c]))
+	       return 0;
          }
       }
    }
@@ -506,42 +494,42 @@ static int fs_flist_putter(AL_CONST char *str, int attrib, void *check_attrib)
       int size = ustrsizez(s) + ((attrib & FA_DIREC) ? ucwidth(OTHER_PATH_SEPARATOR) : 0);
       name = _AL_MALLOC_ATOMIC(size);
       if (!name)
-	     return -1;
+	 return -1;
 
       ustrzcpy(name, size, s);
       if (attrib & FA_DIREC)
-	     put_backslash(name);
+	 put_backslash(name);
 
       /* Sort alphabetically with directories first. */
       for (c=0; c<flist->size; c++) {
-	     if (ugetat(flist->name[c], -1) == OTHER_PATH_SEPARATOR) {
-	        if (attrib & FA_DIREC)
-	           if (ustrfilecmp(name, flist->name[c]) < 0)
-		    break;
-	     }
-	     else {
-	        if (attrib & FA_DIREC)
-	           break;
-	        if (ustrfilecmp(name, flist->name[c]) < 0)
-	           break;
-	     }
+	 if (ugetat(flist->name[c], -1) == OTHER_PATH_SEPARATOR) {
+	    if (attrib & FA_DIREC)
+	       if (ustrfilecmp(name, flist->name[c]) < 0)
+		  break;
+	 }
+	 else {
+	    if (attrib & FA_DIREC)
+	       break;
+	    if (ustrfilecmp(name, flist->name[c]) < 0)
+	       break;
+	 }
       }
       /* Do we need to allocate more space in the structure? */
       /* This doubles the capacity of the array each time, */
       /* which gives 'linear' compexity */
       if (flist->size == flist->capacity) {
          flist->capacity *= 2;
-	     flist->name = _al_sane_realloc(flist->name, sizeof(char *) * flist->capacity);
-	     if (flist->name == NULL) {
-	        *allegro_errno = ENOMEM;
-	        /* Stop the enumeration by returning non-zero */
-	        return -1;
-	     }
+	 flist->name = _al_sane_realloc(flist->name, sizeof(char *) * flist->capacity);
+	 if (flist->name == NULL) {
+	    *allegro_errno = ENOMEM;
+	    /* Stop the enumeration by returning non-zero */
+	    return -1;
+	 }
       }
 
       /* Shift in preparation for inserting the new entry. */
       for (c2=flist->size; c2>c; c2--)
-	     flist->name[c2] = flist->name[c2-1];
+	 flist->name[c2] = flist->name[c2-1];
 
       /* Insert the new entry. */
       flist->name[c] = name;
@@ -560,7 +548,7 @@ static char *fs_flist_getter(int index, int *list_size)
 {
    if (index < 0) {
       if (list_size)
-	     *list_size = flist->size;
+	 *list_size = flist->size;
       return NULL;
    }
 
@@ -591,7 +579,6 @@ static int build_attrb_flag(attrb_state_t state)
  */
 static int fs_flist_proc(int msg, DIALOG *d, int c)
 {
-	//PSV_DEBUG("fs_flist_proc()");
    static int recurse_flag = 0;
    char *s = file_selector[FS_EDIT].dp;
    char tmp[32];
@@ -602,44 +589,44 @@ static int fs_flist_proc(int msg, DIALOG *d, int c)
 
    if (msg == MSG_START) {
       if (!flist) {
-	     flist = _AL_MALLOC(sizeof(FLIST));
+	 flist = _AL_MALLOC(sizeof(FLIST));
 
-	     if (!flist) {
-	       *allegro_errno = ENOMEM;
-	       return D_CLOSE; 
-	     }
-         flist->capacity = FLIST_START_CAPACITY;
-	     flist->name = _AL_MALLOC(flist->capacity * sizeof(char *));
-	     if (!flist->name) {
-	        *allegro_errno = ENOMEM;
-	        return D_CLOSE;
+	 if (!flist) {
+	    *allegro_errno = ENOMEM;
+	    return D_CLOSE; 
+	 }
+	 flist->capacity = FLIST_START_CAPACITY;
+	 flist->name = _AL_MALLOC(flist->capacity * sizeof(char *));
+	 if (!flist->name) {
+	    *allegro_errno = ENOMEM;
+	    return D_CLOSE;
          }
       }
       else {
-	     for (i=0; i<flist->size; i++) {
-	        if (flist->name[i]) {
-	           _AL_FREE(flist->name[i]);
-	           /* PH add: maybe avoid multiple frees */
-	           flist->name[i] = NULL;
-	        }
-	     }
-	     /* Maybe shrink the structure */
-	     if (flist->capacity > FLIST_UPPER_CAPACITY) {
-	        flist->capacity = FLIST_UPPER_CAPACITY;
-	        flist->name = _al_sane_realloc(flist->name, sizeof(char *) * flist->capacity);
-	        if (!flist) {
-	           /* Oops! Should never happen, I hope */
-	           *allegro_errno = ENOMEM;
-	           return D_CLOSE;
-	        }
-	     }
+	 for (i=0; i<flist->size; i++) {
+	    if (flist->name[i]) {
+	       _AL_FREE(flist->name[i]);
+	       /* PH add: maybe avoid multiple frees */
+	       flist->name[i] = NULL;
+	    }
+	 }
+	 /* Maybe shrink the structure */
+	 if (flist->capacity > FLIST_UPPER_CAPACITY) {
+	    flist->capacity = FLIST_UPPER_CAPACITY;
+	    flist->name = _al_sane_realloc(flist->name, sizeof(char *) * flist->capacity);
+	    if (!flist) {
+	       /* Oops! Should never happen, I hope */
+	       *allegro_errno = ENOMEM;
+	       return D_CLOSE;
+	    }
+	 }
       }
 
       flist->size = 0;
 
       replace_filename(flist->dir, s, uconvert_ascii("*.*", tmp), sizeof(flist->dir));
-      
-	  /* The semantics of the attributes passed to file_select_ex() is
+
+      /* The semantics of the attributes passed to file_select_ex() is
        * different from that of for_each_file_ex() in one case: when
        * the 'd' attribute is not mentioned in the set of characters,
        * the other attributes are not taken into account for directories,
@@ -647,9 +634,9 @@ static int fs_flist_proc(int msg, DIALOG *d, int c)
        * for_each_file_ex() in that case.
        */
       if (attrb_state[ATTRB_DIREC] == ATTRB_ABSENT)
-         for_each_file_ex(flist->dir, 0 /* accept all dirs */, FA_LABEL, fs_flist_putter, (void *)1UL /* check */);
+	 for_each_file_ex(flist->dir, 0 /* accept all dirs */, FA_LABEL, fs_flist_putter, (void *)1UL /* check */);
       else
-		 for_each_file_ex(flist->dir, build_attrb_flag(ATTRB_SET), build_attrb_flag(ATTRB_UNSET) | FA_LABEL, fs_flist_putter, (void *)0UL /* don't check */);
+	 for_each_file_ex(flist->dir, build_attrb_flag(ATTRB_SET), build_attrb_flag(ATTRB_UNSET) | FA_LABEL, fs_flist_putter, (void *)0UL /* don't check */);
 
       usetc(get_filename(flist->dir), 0);
       d->d1 = d->d2 = 0;
@@ -658,12 +645,12 @@ static int fs_flist_proc(int msg, DIALOG *d, int c)
 
    if (msg == MSG_END) {
       if (flist) {
-		for (i=0; i<flist->size; i++)
-			if (flist->name[i])
-			   _AL_FREE(flist->name[i]);
-		_AL_FREE(flist->name);
-		_AL_FREE(flist);
-		flist = NULL;
+	 for (i=0; i<flist->size; i++)
+	    if (flist->name[i])
+	       _AL_FREE(flist->name[i]);
+	 _AL_FREE(flist->name);
+	 _AL_FREE(flist);
+	 flist = NULL;
       }
    }
 
@@ -671,36 +658,33 @@ static int fs_flist_proc(int msg, DIALOG *d, int c)
    ret = _gui_text_list_proc(msg, d, c);     /* call the parent procedure */
    recurse_flag--;
 
-	if (((sel != d->d1) || (ret == D_CLOSE)) && (recurse_flag == 0)) {
-		replace_filename(s, flist->dir, flist->name[d->d1], size);
-		/* check if we want to `cd ..' */
-		if ((!ustrncmp(flist->name[d->d1], uconvert_ascii("..", tmp), 2)) && (ret == D_CLOSE)) {
-			/* let's remember the previous directory */
-			usetc(updir, 0);
-			i = ustrlen(flist->dir);
-			count = 0;
+   if (((sel != d->d1) || (ret == D_CLOSE)) && (recurse_flag == 0)) {
+      replace_filename(s, flist->dir, flist->name[d->d1], size);
+      /* check if we want to `cd ..' */
+      if ((!ustrncmp(flist->name[d->d1], uconvert_ascii("..", tmp), 2)) && (ret == D_CLOSE)) {
+	 /* let's remember the previous directory */
+	 usetc(updir, 0);
+	 i = ustrlen(flist->dir);
+	 count = 0;
+	 while (i>0) {
+	    ch = ugetat(flist->dir, i);
+	    if ((ch == '/') || (ch == OTHER_PATH_SEPARATOR)) {
+	       if (++count == 2)
+		  break;
+	    }
+	    uinsert(updir, 0, ch);
+	    i--;
+	 }
+	 /* ok, we have the dirname in updir */
+      }
+      else {
+	 usetc(updir, 0);
+      }
+      object_message(file_selector+FS_EDIT, MSG_START, 0);
+      object_message(file_selector+FS_EDIT, MSG_DRAW, 0);
 
-			while (i>0) {
-				ch = ugetat(flist->dir, i);
-				if ((ch == '/') || (ch == OTHER_PATH_SEPARATOR)) {
-					if (++count == 2)
-					break;
-				}
-				uinsert(updir, 0, ch);
-				i--;
-			}
-
-			/* ok, we have the dirname in updir */
-		}
-		else {
-			usetc(updir, 0);
-		}
-
-		object_message(file_selector+FS_EDIT, MSG_START, 0);
-		object_message(file_selector+FS_EDIT, MSG_DRAW, 0);
-
-		if (ret == D_CLOSE)
-			return object_message(file_selector+FS_EDIT, MSG_KEY, 0);
+      if (ret == D_CLOSE)
+	 return object_message(file_selector+FS_EDIT, MSG_KEY, 0);
    }
 
    return ret;
@@ -913,8 +897,6 @@ static void stretch_dialog(DIALOG *d, int width, int height)
  */
 int file_select_ex(AL_CONST char *message, char *path, AL_CONST char *ext, int size, int width, int height)
 {
-   //PSV_DEBUG("file_select_ex()");
-   //PSV_DEBUG("path = %s", path);
    static attrb_state_t default_attrb_state[ATTRB_MAX] = DEFAULT_ATTRB_STATE;
    int ret;
    char *p, *backup;
@@ -961,9 +943,13 @@ int file_select_ex(AL_CONST char *message, char *path, AL_CONST char *ext, int s
    if (!ugetc(path)) {
 
    #ifdef FSEL_HAVE_DIR_LIST
+
       int drive = _al_getdrive();
+
    #else
+
       int drive = 0;
+
    #endif
 
       _al_getdcwd(drive, path, size - ucwidth(OTHER_PATH_SEPARATOR));
@@ -980,7 +966,6 @@ int file_select_ex(AL_CONST char *message, char *path, AL_CONST char *ext, int s
    stretch_dialog(file_selector, width, height);
    centre_dialog(file_selector);
    set_dialog_color(file_selector, gui_fg_color, gui_bg_color);
-
    ret = popup_dialog(file_selector, FS_EDIT);
 
    if (fext) {

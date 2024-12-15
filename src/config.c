@@ -1090,7 +1090,6 @@ void set_config_string(AL_CONST char *section, AL_CONST char *name, AL_CONST cha
    else
       the_config = config[0];
 
-
    if (the_config) {
       p = find_config_string(the_config, section_name, name, &prev);
 
@@ -1512,6 +1511,6 @@ int list_config_sections(AL_CONST char ***names)
  */
 void free_config_entries(AL_CONST char ***names)
 {
-    _AL_FREE((void *)*names);
+    _AL_FREE(*((char***)(names)));
     *names = NULL;
 }

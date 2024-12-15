@@ -19,6 +19,7 @@
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
 #include "allegro/platform/aintwin.h"
+#include "wddraw.h"
 
 #ifndef SCAN_DEPEND
    #include <string.h>
@@ -189,7 +190,7 @@ static void exit_window_modules(struct WINDOW_MODULES *wm)
  */
 int wnd_call_proc(int (*proc) (void))
 {
-   return SendMessage(allegro_wnd, msg_call_proc, (DWORD) proc, 0);
+   return SendMessage(allegro_wnd, msg_call_proc, (WPARAM)proc, (LPARAM)0);
 }
 
 
@@ -200,7 +201,7 @@ int wnd_call_proc(int (*proc) (void))
  */
 void wnd_schedule_proc(int (*proc) (void))
 {
-   PostMessage(allegro_wnd, msg_call_proc, (DWORD) proc, 0);
+   PostMessage(allegro_wnd, msg_call_proc, (WPARAM)proc, (LPARAM)0);
 }
 
 
@@ -213,7 +214,7 @@ static LRESULT CALLBACK directx_wnd_proc(HWND wnd, UINT message, WPARAM wparam, 
    PAINTSTRUCT ps;
 
    if (message == msg_call_proc)
-      return ((int (*)(void))wparam) ();
+      return ( ( LRESULT(*)( void ) )wparam ) ( );
 
    if (message == msg_suicide) {
       DestroyWindow(wnd);
@@ -224,7 +225,7 @@ static LRESULT CALLBACK directx_wnd_proc(HWND wnd, UINT message, WPARAM wparam, 
    if (wnd_msg_pre_proc){
       int retval = 0;
       if (wnd_msg_pre_proc(wnd, message, wparam, lparam, &retval) == 0)
-         return retval;
+         return (LRESULT)retval;
    }
 
    /* See get_reverse_mapping() in wkeybd.c to see what this is for. */
@@ -381,6 +382,15 @@ static LRESULT CALLBACK directx_wnd_proc(HWND wnd, UINT message, WPARAM wparam, 
             return 0;
          }
          break;
+
+      case WM_QUERYNEWPALETTE:
+      case WM_PALETTECHANGED:
+         if ((HWND)wparam != wnd && gfx_directx_primary_surface) {
+            IDirectDrawSurface2_SetPalette(gfx_directx_primary_surface->id, ddpalette);
+            InvalidateRect(wnd, NULL, 1);
+            return 1;
+         }
+         break;
    }
 
    /* pass message to default window proc */
@@ -442,6 +452,7 @@ static HWND create_directx_window(void)
       return NULL;
    }
 
+   SetSystemPaletteUse(GetDC(wnd), SYSPAL_NOSTATIC256);
    ShowWindow(wnd, SW_SHOWNORMAL);
    SetForegroundWindow(wnd);
    UpdateWindow(wnd);
@@ -456,7 +467,7 @@ static HWND create_directx_window(void)
  */
 static void wnd_thread_proc(HANDLE setup_event)
 {
-   int result;
+   DWORD result;
    MSG msg;
 
    _win_thread_init();
@@ -518,12 +529,15 @@ int init_directx_window(void)
    msg_call_proc = RegisterWindowMessage("Allegro call proc");
    msg_suicide = RegisterWindowMessage("Allegro window suicide");
 
+   /* initialize gfx critical section */
+   InitializeCriticalSection(&gfx_crit_sect);
+
    if (user_wnd) {
       /* initializes input module and requests dedicated thread */
       _win_input_init(TRUE);
 
       /* hook the user window */
-      user_wnd_proc = (WNDPROC) SetWindowLong(user_wnd, GWL_WNDPROC, (long)directx_wnd_proc);
+      user_wnd_proc = (WNDPROC) SetWindowLongPtr(user_wnd, GWLP_WNDPROC, (LONG_PTR)directx_wnd_proc);
       if (!user_wnd_proc)
          return -1;
 
@@ -560,9 +574,6 @@ int init_directx_window(void)
       }
    }
 
-   /* initialize gfx critical section */
-   InitializeCriticalSection(&gfx_crit_sect);
-
    /* save window style */
    old_style = GetWindowLong(allegro_wnd, GWL_STYLE);
 
@@ -579,7 +590,7 @@ void exit_directx_window(void)
 {
    if (user_wnd) {
       /* restore old window proc */
-      SetWindowLong(user_wnd, GWL_WNDPROC, (long)user_wnd_proc);
+      SetWindowLongPtr(user_wnd, GWLP_WNDPROC, (LONG_PTR)user_wnd_proc);
       user_wnd_proc = NULL;
       user_wnd = NULL;
       allegro_wnd = NULL;

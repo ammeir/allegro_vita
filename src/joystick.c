@@ -122,6 +122,7 @@ static void update_calib(int n)
  */
 int install_joystick(int type)
 {
+	PSV_DEBUG("install_joystick()");
    _DRIVER_INFO *driver_list;
    int c;
 
@@ -129,9 +130,8 @@ int install_joystick(int type)
       return 0;
 
    clear_joystick_vars();
-
    usetc(allegro_error, 0);
-
+  
    if (system_driver->joystick_drivers)
       driver_list = system_driver->joystick_drivers();
    else
@@ -140,38 +140,38 @@ int install_joystick(int type)
    /* search table for a specific driver */
    for (c=0; driver_list[c].driver; c++) { 
       if (driver_list[c].id == type) {
-	 joystick_driver = driver_list[c].driver;
-	 joystick_driver->name = joystick_driver->desc = get_config_text(joystick_driver->ascii_name);
-	 _joy_type = type;
-	 if (joystick_driver->init() != 0) {
-	    if (!ugetc(allegro_error))
-	       uszprintf(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("%s not found"), joystick_driver->name);
-	    joystick_driver = NULL; 
-	    _joy_type = JOY_TYPE_NONE;
-	    return -1;
-	 }
-	 break;
+		joystick_driver = driver_list[c].driver;
+		joystick_driver->name = joystick_driver->desc = get_config_text(joystick_driver->ascii_name);
+		_joy_type = type;
+		if (joystick_driver->init() != 0) {
+			if (!ugetc(allegro_error))
+				uszprintf(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("%s not found"), joystick_driver->name);
+			joystick_driver = NULL; 
+			_joy_type = JOY_TYPE_NONE;
+			return -1;
+		}
+		break;
       }
    }
-
+   
    /* autodetect driver */
    if (!joystick_driver) {
       if (!joy_loading) {
-	 if (load_joystick_data(NULL) != -1)
-	    return 0;
+		if (load_joystick_data(NULL) != -1)
+			return 0;
       }
 
       for (c=0; driver_list[c].driver; c++) {
-	 if (driver_list[c].autodetect) {
-	    joystick_driver = driver_list[c].driver;
-	    joystick_driver->name = joystick_driver->desc = get_config_text(joystick_driver->ascii_name);
-	    _joy_type = driver_list[c].id;
-	    if (joystick_driver->init() == 0)
-	       break;
-	 }
+		if (driver_list[c].autodetect) {
+			joystick_driver = driver_list[c].driver;
+			joystick_driver->name = joystick_driver->desc = get_config_text(joystick_driver->ascii_name);
+			_joy_type = driver_list[c].id;
+			if (joystick_driver->init() == 0)
+				break;
+		}
       }
    }
-
+   
    if (!driver_list[c].driver) {
       ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text ("No joysticks found"));
       return -1;
@@ -184,7 +184,7 @@ int install_joystick(int type)
 
    _add_exit_func(remove_joystick, "remove_joystick");
    _joystick_installed = TRUE;
-
+   
    return 0;
 }
 

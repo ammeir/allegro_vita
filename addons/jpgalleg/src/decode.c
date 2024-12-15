@@ -477,8 +477,8 @@ get_bits(int num_bits)
  *  Reads a string of bits from the input stream and returns a properly signed
  *  number given the category.
  */
-//INLINE int // PSVITA
-int get_value(int category)
+static INLINE int
+get_value(int category)
 {
 	int result = get_bits(category);
 	if ((result >= (1 << (category - 1))) || (result < 0))

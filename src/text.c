@@ -22,7 +22,7 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
+
 
 
 /* textout_ex:
@@ -40,39 +40,7 @@ void textout_ex(BITMAP *bmp, AL_CONST FONT *f, AL_CONST char *str, int x, int y,
    f->vtable->render(f, str, color, bg, bmp, x, y);
 }
 
-//int textout_hack(BITMAP *bmp, AL_CONST FONT *f, AL_CONST char *str, int x, int y, double multiplier_x, double multiplier_y, int color)
-//{
-//	BITMAP *tmp;
-//	   
-//	//PSV_DEBUG("string: %s, lenght = %d, height = %d", str, text_length(f, str), text_height(f));
-//	//tmp = create_bitmap(text_length(f, str) + 150, text_height(f));
-//	tmp = create_bitmap(text_length(f, str), text_height(f));
-//
-//	//PSV_DEBUG("bitmap: lenght = %d, height = %d", tmp->w, tmp->h);
-//	   
-//	if(!tmp)
-//		return -1;
-//	    
-//	//clear_to_color(tmp, 16/*makecol(255, 0, 255)*/);
-//	//textout_ex(tmp, f, str, 0, 0, color, 16) ;
-//
-//	clear_to_color(tmp, makecol(255, 0, 255));
-//	textout_ex(tmp, f, str, 0, 0, 1, -1) ;
-//	   
-//
-//	//PSV_DEBUG("new lenght = %d", (int)(tmp->w * multiplier));
-//	//PSV_DEBUG("new height = %d", (int)(tmp->h * multiplier));
-//
-//	//masked_stretch_blit(tmp, bmp, 0, 0, tmp->w, tmp->h, x, y, (int)(tmp->w * 1), (int)(tmp->h * 1.5)); 
-//	   
-//	stretch_blit(tmp, bmp, 0, 0, tmp->w, tmp->h, x, y, (int)(tmp->w * 1.9), (int)(tmp->h * 1.5)); 
-//	
-//	//f->vtable->render(f, str, color, bg, bmp, x, y);
-//
-//	destroy_bitmap(tmp);
-//	   
-//	return 0;
-//}
+
 
 /* textout_centre_ex:
  *  Like textout_ex(), but uses the x coordinate as the centre rather than 

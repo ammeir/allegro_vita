@@ -6,6 +6,9 @@
  *----------------------------------------------------------------
  *  This is the interface module for use under X.
  */
+
+#ifndef PSVITA
+
 #include <string.h>
 #include <stdio.h>
 
@@ -1664,3 +1667,4 @@ static struct allegro_gl_driver allegro_gl_x = {
 	NULL
 };
 
+#endif

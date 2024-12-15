@@ -515,7 +515,7 @@ static int allegro_gl_amesa_create_window (int fullscreen)
 		_amesa.buffer = AMesaCreateBuffer(_amesa.visual, subscreen);
 
 		TRACE("** Note ** amesa_create_window: Screen : %ix%i %i bpp\n",
-		      ubscreen->w, subscreen->h, bitmap_color_depth(subscreen));
+		      subscreen->w, subscreen->h, bitmap_color_depth(subscreen));
 	}
 	else {
 		_amesa.buffer = AMesaCreateBuffer(_amesa.visual, screen);

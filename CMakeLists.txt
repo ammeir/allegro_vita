@@ -316,30 +316,49 @@ endif(PSP)
 if (PSVITA)
 	message("-- Platform=PSVITA")
 	add_definitions(-DALLEGRO_PSV)
-	add_definitions(-DALLEGRO_WITH_MAGIC_MAIN)
+	#add_definitions(-DALLEGRO_WITH_MAGIC_MAIN)
 	add_definitions(-DALLEGRO_MULTITHREADED)
 
-    # Use only WFLAGS.
-    set(WFLAGS_C_ONLY "")
+        #add_definitions(-DALLEGRO_STATICLINK)
+        #add_definitions(-DALLEGRO_NO_COMPATIBILITY)
+        #add_definitions(-DALLEGRO_NO_FIX_ALIASES)
+        #add_definitions(-DALLEGRO_NO_FIX_CLASS)
 
 	if (CMAKE_BUILD_TYPE MATCHES Debug)
 		# Build with -g flag to enable better debugging information.
 		message("-- Build mode is DEBUG")
-		set(WFLAGS "-W -Wall -Wno-unused -Wno-multichar -Wno-declaration-after-statement") 
+        set(CMAKE_BUILD_TYPE Debug)
+        add_definitions(-DPSV_DEBUG_CODE)
+		
+        #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+        set(WFLAGS "-W -Wall -Wno-unused -Wno-multichar -Wno-declaration-after-statement") 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS} -g -std=gnu11")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} -g -std=c++11")
-		add_definitions(-DPSV_DEBUG_CODE)	
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} -g -std=c++11")	
 	else ()
 		# Build release version with -O3 flag. It will optimize the code and give good performance boost. 
 		message("-- Build mode is RELEASE")
+
+		set(CMAKE_C_FLAGS "-Wl,-q -O3 -mfpu=neon-fp16 -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard")
+		set(CMAKE_CXX_FLAGS "-Wl,-q -O3 -mfpu=neon-fp16 -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard")
+		
 		set(WFLAGS "-Wno-unused -Wno-multichar -Wno-declaration-after-statement") 
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -O3")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+		##set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS} -Wl, -O3 -ffast-math -mtune=cortex-a9")
+
+        #set(CMAKE_C_FLAGS "-Wl,-q -O3 -ffast-math -mtune=cortex-a9 -mfpu=neon")
+		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} -Wl, -O3 -ffast-math -mtune=cortex-a9")
+
+		#-march=armv7-a -mfloat-abi=hard -mfpu=neon -O3 -finline-functions -funroll-loops -ftree-loop-vectorize -mcpu=cortex-a9 -mthumb -flto -o my_program my_program.c
+		# toimii #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -Wno-write-strings")
+		#set(CMAKE_C_FLAGS "-O3 -mfpu=neon -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -mthumb  -fno-optimize-sibling-calls -finline-functions -funroll-loops -ftree-loop-vectorize -fsingle-precision-constant -ffast-math -Wno-write-strings")
+		#set(CMAKE_CXX_FLAGS "-O3 -mfpu=neon -fno-optimize-sibling-calls -fsingle-precision-constant -march=armv7-a -mtune=cortex-a9 -mfloat-abi=hard -ffast-math -fpermissive -Wno-write-strings")
+
 	endif (CMAKE_BUILD_TYPE MATCHES Debug)
 endif(PSVITA)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS} ${WFLAGS_C_ONLY}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} ${WFLAGS_CXX_ONLY}")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WFLAGS} ${WFLAGS_C_ONLY}")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WFLAGS} ${WFLAGS_CXX_ONLY}")
 
 if(NOT BUILD_SHARED_LIBS)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DALLEGRO_STATICLINK")

@@ -15,6 +15,8 @@
  *      See readme.txt for copyright information.
  */
 
+#include "psvita.h"
+
 #ifndef __bma_cgfx_h
 #define __bma_cgfx_h
 
@@ -84,7 +86,12 @@ int FUNC_LINEAR_GETPIXEL(BITMAP *src, int sx, int sy)
    if ((sx < 0) || (sx >= src->w) || (sy < 0) || (sy >= src->h))
       return -1;
    else {
+
+      //uintptr_t line_y = (uintptr_t)src->line[sy];
+      //PIXEL_PTR s = OFFSET_PIXEL_PTR(line_y, sx);
+
       PIXEL_PTR s = OFFSET_PIXEL_PTR(bmp_read_line(src, sy), sx);
+      
       unsigned long c;
 
       bmp_select(src);

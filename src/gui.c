@@ -28,7 +28,7 @@
 
 #include "allegro.h"
 #include "allegro/internal/aintern.h"
-#include "psvita.h"
+
 
 
 /* if set, the input focus follows the mouse pointer */
@@ -326,9 +326,6 @@ int find_dialog_focus(DIALOG *dialog)
  */
 int object_message(DIALOG *dialog, int msg, int c)
 {
-	//PSV_DEBUG("object_message()");
-	//PSV_DEBUG("msg = %d, c = %d", msg, c);
-
 #ifdef ALLEGRO_WINDOWS
    /* exported address of d_clear_proc */
    extern int (*_d_clear_proc)(int, DIALOG *, int);
@@ -339,18 +336,16 @@ int object_message(DIALOG *dialog, int msg, int c)
 
    if (msg == MSG_DRAW) {
       if (dialog->flags & D_HIDDEN)
-		return D_O_K;
+	 return D_O_K;
 
 #ifdef ALLEGRO_WINDOWS
       if (dialog->proc == _d_clear_proc)
 #else
-      if (dialog->proc == d_clear_proc){
+      if (dialog->proc == d_clear_proc)
 #endif
-		  scare_mouse();
-	  }
-      else{
-		  scare_mouse_area(dialog->x, dialog->y, dialog->w, dialog->h);
-	  }
+	 scare_mouse();
+      else
+	 scare_mouse_area(dialog->x, dialog->y, dialog->w, dialog->h);
 
       acquire_screen();
    }
@@ -379,8 +374,6 @@ int object_message(DIALOG *dialog, int msg, int c)
  */
 int dialog_message(DIALOG *dialog, int msg, int c, int *obj)
 {
-   //PSV_DEBUG("dialog_message()");
-   //PSV_DEBUG("file_selector[FS_EDIT].dp = %s", dialog[4].dp);
    int count, res, r, force, try;
    DIALOG *menu_dialog = NULL;
    ASSERT(dialog);
@@ -418,31 +411,32 @@ int dialog_message(DIALOG *dialog, int msg, int c, int *obj)
    else
       try = 1;
 
-	for (; try > 0; try--) {
-		for (count=0; dialog[count].proc; count++) {
-			if ((try == 2) && (&dialog[count] != menu_dialog))
-				continue;
+   for (; try > 0; try--) {
+      for (count=0; dialog[count].proc; count++) {
+         if ((try == 2) && (&dialog[count] != menu_dialog))
+	    continue;
 
-			if ((force) || (!(dialog[count].flags & D_HIDDEN))) {
-				r = object_message(&dialog[count], msg, c);
-				if (r != D_O_K) {
-					res |= r;
-					if (obj)
-						*obj = count;
-				}
+	 if ((force) || (!(dialog[count].flags & D_HIDDEN))) {
+	    r = object_message(&dialog[count], msg, c);
 
-				if ((msg == MSG_IDLE) && (dialog[count].flags & (D_DIRTY | D_HIDDEN)) == D_DIRTY) {
-				   dialog[count].flags &= ~D_DIRTY;
-				   object_message(dialog+count, MSG_DRAW, 0);
-				}
-			}
-		}
+	    if (r != D_O_K) {
+	       res |= r;
+	       if (obj)
+		  *obj = count;
+	    }
 
-		if (active_menu_player)
-			break;
-	}
+	    if ((msg == MSG_IDLE) && (dialog[count].flags & (D_DIRTY | D_HIDDEN)) == D_DIRTY) {
+	       dialog[count].flags &= ~D_DIRTY;
+	       object_message(dialog+count, MSG_DRAW, 0);
+	    }
+	 }
+      }
 
-	return res;
+      if (active_menu_player)
+	 break;
+   }
+
+   return res;
 }
 
 
@@ -803,7 +797,6 @@ static int move_focus(DIALOG *d, int ascii, int scan, int *focus_obj)
  */
 int do_dialog(DIALOG *dialog, int focus_obj)
 {
-	//PSV_DEBUG("do_dialog()");
    BITMAP *mouse_screen = _mouse_screen;
    BITMAP *gui_bmp = gui_get_screen();
    int screen_count = _gfx_mode_set_count;
@@ -814,6 +807,7 @@ int do_dialog(DIALOG *dialog, int focus_obj)
       show_mouse(gui_bmp);
 
    player = init_dialog(dialog, focus_obj);
+
    while (update_dialog(player)) {
       /* If a menu is active, we yield here, since the dialog
        * engine is shut down so no user code can be running.
@@ -821,7 +815,7 @@ int do_dialog(DIALOG *dialog, int focus_obj)
       if (active_menu_player)
          rest(1);
    }
-   
+
    if (_gfx_mode_set_count == screen_count && !(gfx_capabilities&GFX_HW_CURSOR))
       show_mouse(mouse_screen);
 
@@ -838,7 +832,6 @@ int do_dialog(DIALOG *dialog, int focus_obj)
  */
 int popup_dialog(DIALOG *dialog, int focus_obj)
 {
-	//PSV_DEBUG("popup_dialog()");
    BITMAP *bmp;
    BITMAP *gui_bmp;
    int ret;
@@ -874,7 +867,6 @@ int popup_dialog(DIALOG *dialog, int focus_obj)
  */
 DIALOG_PLAYER *init_dialog(DIALOG *dialog, int focus_obj)
 {
-	//PSV_DEBUG("init_dialog()");
    DIALOG_PLAYER *player;
    BITMAP *gui_bmp = gui_get_screen();
    struct al_active_dialog_player *n;
@@ -968,8 +960,8 @@ DIALOG_PLAYER *init_dialog(DIALOG *dialog, int focus_obj)
    set_clip_rect(gui_bmp, 0, 0, SCREEN_W-1, SCREEN_H-1);
    set_clip_state(gui_bmp, TRUE);
    player->res |= dialog_message(dialog, MSG_START, 0, &player->obj);
+
    player->mouse_obj = find_mouse_object(dialog);
-   
    if (player->mouse_obj >= 0)
       dialog[player->mouse_obj].flags |= D_GOTMOUSE;
 

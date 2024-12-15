@@ -46,7 +46,7 @@ void drawing_mode(int mode, BITMAP *pattern, int x_anchor, int y_anchor)
 	 _drawing_x_mask <<= 1;        /* find power of two greater than w */
 
       if (_drawing_x_mask > (unsigned)pattern->w) {
-	 //ASSERT(FALSE);
+	 ASSERT(FALSE);
 	 _drawing_x_mask >>= 1;        /* round down if required */
       }
 
@@ -57,7 +57,7 @@ void drawing_mode(int mode, BITMAP *pattern, int x_anchor, int y_anchor)
 	 _drawing_y_mask <<= 1;        /* find power of two greater than h */
 
       if (_drawing_y_mask > (unsigned)pattern->h) {
-	 //ASSERT(FALSE);
+	 ASSERT(FALSE);
 	 _drawing_y_mask >>= 1;        /* round down if required */
       }
 

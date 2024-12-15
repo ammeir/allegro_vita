@@ -8,6 +8,7 @@
 #cmakedefine ALLEGRO_MPW
 #cmakedefine ALLEGRO_MSVC
 #cmakedefine ALLEGRO_PSP
+#cmakedefine ALLEGRO_PSV
 #cmakedefine ALLEGRO_QNX
 #cmakedefine ALLEGRO_UNIX
 #cmakedefine ALLEGRO_WATCOM

@@ -292,7 +292,7 @@ void _remove_exit_func(void (*func)(void))
 static void allegro_exit_stub(void)
 {
    _allegro_in_exit = TRUE;
-
+   //PSV_DEBUG("(1)Calling allegro_exit()...");
    allegro_exit();
 }
 
@@ -303,6 +303,7 @@ static void allegro_exit_stub(void)
  */
 static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(void (*func)(void)))
 {
+	PSV_DEBUG("_install_allegro()");
    RGB black_rgb = {0, 0, 0, 0};
    char tmp1[64], tmp2[64];
    int i;
@@ -320,7 +321,7 @@ static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(voi
       _register_sample_file_type_init();
       _register_font_file_type_init();
    #endif
-
+	PSV_DEBUG("TRACE1");
    if (errno_ptr)
       allegro_errno = errno_ptr;
    else
@@ -365,6 +366,7 @@ static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(voi
    /* initialise the system driver */
    usetc(allegro_error, 0);
 
+   PSV_DEBUG("TRACE2");
    for (i=0; _system_driver_list[i].driver; i++) {
       if ((_system_driver_list[i].id == system_id) ||
 	  ((_system_driver_list[i].autodetect) && (system_id == SYSTEM_AUTODETECT))) {
@@ -379,7 +381,7 @@ static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(voi
 	    break;
       }
    }
-
+   PSV_DEBUG("TRACE3");
    if (!system_driver)
       return -1;
 
@@ -410,7 +412,7 @@ static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(voi
    }
 
    _allegro_count++;
-
+   PSV_DEBUG("TRACE4");
    TRACE(PREFIX_I "Allegro initialised (instance %d)\n", _allegro_count);
    return 0;
 }
@@ -424,8 +426,8 @@ static int _install_allegro(int system_id, int *errno_ptr, int (*atexit_ptr)(voi
 int _install_allegro_version_check(int system_id, int *errno_ptr,
    int (*atexit_ptr)(void (*func)(void)), int version)
 {
+	PSV_DEBUG("_install_allegro_version_check()");
    int r = _install_allegro(system_id, errno_ptr, atexit_ptr);
-
    int build_wip = version & 255;
    int build_ver = version & ~255;
 
@@ -456,6 +458,7 @@ int _install_allegro_version_check(int system_id, int *errno_ptr,
          build_ver >> 16, (build_ver >> 8) & 255, build_wip);
       return -1;
    }
+   PSV_DEBUG("_install_allegro_version_check() - end");
    return 0;
 }
 
@@ -466,6 +469,7 @@ int _install_allegro_version_check(int system_id, int *errno_ptr,
  */
 void allegro_exit(void)
 {
+   PSV_DEBUG("allegro_exit()");
    while (exit_func_list) {
       void (*func)(void) = exit_func_list->funcptr;
       _remove_exit_func(func);
@@ -585,6 +589,7 @@ void al_assert(AL_CONST char *file, int line)
 
    /* todo, some day: use snprintf (C99) */
    sprintf(buf, "Assert failed at line %d of %s", line, file);
+   //PSV_DEBUG("%s", buf);
 
    if (assert_handler) {
       if (assert_handler(buf))
@@ -613,12 +618,13 @@ void al_assert(AL_CONST char *file, int line)
       asserted = TRUE;
 
       if ((system_driver) && (system_driver->assert)) {
-	 system_driver->assert(buf);
+	      system_driver->assert(buf);
       }
       else {
-	 allegro_exit();
-	 fprintf(stderr, "%s\n", buf);
-	 abort();
+		  //PSV_DEBUG("(2)Calling allegro_exit()...");
+	      allegro_exit();
+	      fprintf(stderr, "%s\n", buf);
+	      abort();
       }
    }
 
